@@ -35,3 +35,7 @@ export const helloWorld = onRequest((request, response) => {
 export const getTarget = onRequest(async (request, response) => {
     
 })
+
+export const getLeaderboard = onRequest(async (request, response) => {
+  // fetch the leaderboard data from the snapshot
+})
