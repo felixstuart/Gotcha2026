@@ -165,7 +165,42 @@ export const tagOut = onCall(async (request) => {
         timestamp: Date.now(),
       });
     });
+
+    return { status: 200 };
   } catch (e) {
     throw new HttpsError("unknown", "Tag out could not be completed");
   }
+});
+
+export const setLastWords = onCall(async (request) => {
+  console.log("setLastWords called for", request.auth?.token.email);
+  // start off by verifying the user is authenticated
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "User must be authenticated");
+  }
+  const db = getFirestore();
+
+  const lastWords: string = request.data.lastWords;
+  if (typeof lastWords !== "string") {
+    throw new HttpsError("invalid-argument", "lastWords must be a string");
+  }
+
+  const lastWordsDocRef = db.doc("lastWords/" + request.auth?.token.email);
+
+  lastWordsDocRef.get().then((doc) => {
+    if (!doc.exists) {
+      throw new HttpsError("not-found", "Last words document not found");
+    }
+    if ((doc.data() as any).lw && (doc.data() as any).lw.length > 0) {
+      throw new HttpsError("already-exists", "Last words already set");
+    }
+  });
+
+  // set the last words
+  await lastWordsDocRef.update({
+    lw: lastWords,
+  });
+
+  console.log("Last words set for", request.auth?.token.email);
+  return { status: 200 };
 });
