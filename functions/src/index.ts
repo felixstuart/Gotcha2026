@@ -12,7 +12,6 @@ import { HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
-
 import { Profile } from "../../types";
 
 initializeApp();
@@ -115,100 +114,58 @@ export const getProfile = onCall(async (request) => {
 
 // tag out function
 export const tagOut = onCall(async (request) => {
+  console.log("tagOut called for", request.auth?.token.email);
+  // start off by verifying the user is authenticated
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "User must be authenticated");
   }
-  if (!request.auth.token.email) {
-    throw new HttpsError("unknown", "Something went wrong");
-  }
-
-  const userEmail = request.auth.token.email;
-  console.log("Tag out requested for:", userEmail);
-
   const db = getFirestore();
 
   try {
-    return await db.runTransaction(async (transaction) => {
-      const userDocRef = db.collection("data").doc(userEmail);
-      const userDoc = await transaction.get(userDocRef);
+    await db.runTransaction(async (transaction) => {
+      const userDoc = await transaction.get(
+        db.doc("data/" + request.auth?.token.email)
+      );
       const userData = userDoc.data() as Profile | undefined;
 
-      if (!userData) {
-        throw new HttpsError("not-found", "Profile not found");
-      }
-
-      if (!userData.alive) {
-        throw new HttpsError(
-          "failed-precondition",
-          "You are already tagged out."
-        );
-      }
-
-      const targetEmail = userData.target;
-      const chaserEmail = userData.chaser;
-
-      if (targetEmail === "none" || chaserEmail === "none") {
-        throw new HttpsError(
-          "failed-precondition",
-          "Invalid game state: no target or chaser assigned"
-        );
-      }
-
-      const targetDocRef = db.collection("data").doc(targetEmail);
-      const chaserDocRef = db.collection("data").doc(chaserEmail);
-
-      const targetDoc = await transaction.get(targetDocRef);
+      const chaserDoc = await transaction.get(
+        db.doc("data/" + userData?.chaser)
+      );
+      const chaserData = chaserDoc.data() as Profile | undefined;
+      const targetDoc = await transaction.get(
+        db.doc("data/" + userData?.target)
+      );
       const targetData = targetDoc.data() as Profile | undefined;
 
-      if (!targetData) {
-        throw new HttpsError("not-found", "Target profile not found");
+      if (!userData || !chaserData || !targetData) {
+        throw new HttpsError("not-found", "One of the profiles was not found");
       }
 
-      const chaserDoc = await transaction.get(chaserDocRef);
-      const chaserData = chaserDoc.data() as Profile | undefined;
-
-      if (!chaserData) {
-        throw new HttpsError("not-found", "Chaser profile not found");
-      }
-
-      // Update the tagged-out user
-      transaction.update(userDocRef, {
-        alive: false,
-        target: "none",
-        chaser: "none",
-      });
-
-      // Give the chaser their new target (the victim's former target)
-      transaction.update(chaserDocRef, {
-        target: targetEmail,
+      // increment the tagger's tag count
+      transaction.update(chaserDoc.ref, {
         tags: chaserData.tags + 1,
       });
-
-      // Update the former target to have the chaser as their new chaser
-      transaction.update(targetDocRef, {
-        chaser: chaserEmail,
+      // set the tagee to not alive
+      transaction.update(userDoc.ref, {
+        alive: false,
+      });
+      // set the tagee's target to the chaser's target
+      transaction.update(chaserDoc.ref, {
+        target: userData.target,
+      });
+      // ... and set the target to have the chaser as their new chaser
+      transaction.update(targetDoc.ref, {
+        chaser: userData.chaser,
       });
 
-      // Create a last words entry using the user's email as the document ID
-      const lastWordsRef = db.collection("lastWords").doc(userEmail);
-      transaction.set(lastWordsRef, {
-        author: `${userData.firstName} ${userData.lastName}`,
-        lw: "", // Empty initially — player can update later
-        timestamp: new Date().toISOString(),
-        taggedBy: chaserEmail, // Optional: nice for context/display
+      // finally, create an empty lastWords field for the tagee
+      transaction.set(db.doc("lastWords/" + request.auth?.token.email), {
+        lw: "",
+        author: userData.firstName + " " + userData.lastName,
+        timestamp: Date.now(),
       });
-
-      return { success: true, message: "Tagged out successfully" };
     });
-  } catch (error) {
-    console.error("Error in tagOut:", error);
-    // If it's already an HttpsError, re-throw it; otherwise wrap it
-    if (error instanceof HttpsError) {
-      throw error;
-    }
-    throw new HttpsError(
-      "internal",
-      "An unexpected error occurred during tag out"
-    );
+  } catch (e) {
+    throw new HttpsError("unknown", "Tag out could not be completed");
   }
 });
