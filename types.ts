@@ -8,16 +8,25 @@ export interface Profile {
   firstName: string;
   lastName: string;
   tags: number;
-  target: string;
+  target: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    location?: string;
+  }
   location?: string;
 }
 
 export interface ClientProfile {
   name: string;
-  target: string;
+  target: {
+    name: string;
+    email: string;
+    location?: string;
+  }
   alive: boolean;
   tags: number;
-  location: string;
+  location?: string;
 }
 
 export interface ClientTaggedOutResponse {

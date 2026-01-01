@@ -47,7 +47,10 @@ export default function Profile({ loaderData }: Route.ComponentProps) {
         throw new Error("Failed to tag out");
       }
       setAlive(false);
-      navigate("/app/last-words");
+      navigate("/app/last-words", {
+        state: { canSubmit: true },
+        viewTransition: true,
+      });
     } catch (err) {
       console.error("tagOut error:", err);
       throw err;

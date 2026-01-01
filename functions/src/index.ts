@@ -1,12 +1,3 @@
-/**
- * Import function triggers from their respective submodules:
- *
- * import {onCall} from "firebase-functions/v2/https";
- * import {onDocumentWritten} from "firebase-functions/v2/firestore";
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
- */
-
 import { setGlobalOptions } from "firebase-functions/v2";
 import { HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
@@ -15,192 +6,157 @@ import { getFirestore } from "firebase-admin/firestore";
 import { Profile } from "../../types";
 
 initializeApp();
-
-// Start writing functions
-// https://firebase.google.com/docs/functions/typescript
-
-// For cost control, you can set the maximum number of containers that can be
-// running at the same time. This helps mitigate the impact of unexpected
-// traffic spikes by instead downgrading performance. This limit is a
-// per-function limit. You can override the limit for each function using the
-// `maxInstances` option in the function's options, e.g.
-// `onRequest({ maxInstances: 5 }, (req, res) => { ... })`.
-// NOTE: setGlobalOptions does not apply to functions using the v1 API. V1
-// functions should each use functions.runWith({ maxInstances: 10 }) instead.
-// In the v1 API, each function can only serve one request per container, so
-// this will be the maximum concurrent request count.
 setGlobalOptions({ maxInstances: 10 });
 
-export const helloWorld = onRequest((request, response) => {
+export const helloWorld = onRequest((req, res) => {
   logger.info("Hello logs!", { structuredData: true });
-  response.send("Hello from Firebase!");
+  res.send("Hello from Firebase!");
 });
-
-// export const getTarget = onRequest(async (request, response) => {});
-
-// export const getLeaderboard = onRequest(async (request, response) => {
-//   // fetch the leaderboard data from the snapshot
-// });
 
 export const getProfile = onCall(async (request) => {
-  // request.data contains the data passed from the client
-  // request.auth contains the authenticated user info
-
-  if (!request.auth) {
-    throw new Error("User must be authenticated");
-  }
-  if (!request.auth.token.email) {
-    throw new HttpsError("unknown", "Something went wrong");
+  if (!request.auth || !request.auth.token.email) {
+    throw new HttpsError("unauthenticated", "User must be authenticated");
   }
 
-  // go to the db and fetch the profile for request.auth.emails
+  const email = request.auth.token.email;
   const db = getFirestore();
 
-  console.log("Fetching profile for:", request.auth.token.email);
   try {
-    const profileDoc = await db
-      .collection("data")
-      .doc(request.auth.token.email)
-      .get();
+    const profileDoc = await db.collection("data").doc(email).get();
+    const profile = profileDoc.data() as Profile | undefined;
 
-    const profileData = profileDoc.data() as Profile | undefined;
+    if (!profile) throw new Error("Profile not found");
 
-    if (!profileData) {
-      throw new Error("Profile not found");
-    }
     return {
-      name: `${profileData.firstName} ${profileData.lastName}`,
-      target: profileData.target,
-      alive: profileData.alive,
-      tags: profileData.tags,
-      location: profileData.location || "Unknown",
+      name: `${profile.firstName} ${profile.lastName}`,
+      target: {
+        name: `${profile.target.firstName} ${profile.target.lastName}`,
+        email: profile.target.email,
+        location: profile.target.location,
+      },
+      alive: profile.alive,
+      tags: profile.tags,
+      location: profile.location || "Unknown",
     };
-  } catch (e) {
-    // milton emails: firstname_lastname@milton.edu
-    if (request.auth.token.email.endsWith("@milton.edu")) {
-      const email = request.auth.token.email;
-      const namePart = email.split("@")[0];
-      const [firstName, lastName] = namePart.split("_");
-
-      const newProfile: Profile = {
-        alive: false,
-        chaser: "none",
-        class: "observer",
-        dayorboard: "observer",
-        firstName: firstName.charAt(0).toUpperCase() + firstName.slice(1),
-        lastName: lastName.charAt(0).toUpperCase() + lastName.slice(1),
-        tags: 0,
-        target: "none",
-      };
-      await db.collection("data").doc(request.auth.token.email).set(newProfile);
-
-      console.log("Created observer profile for:", request.auth.token.email);
-      return {
-        name: `${newProfile.firstName} ${newProfile.lastName}`,
-        target: newProfile.target,
-        alive: newProfile.alive,
-        tags: newProfile.tags,
-        location: "Observer",
-      };
+  } catch {
+    if (!email.endsWith("@milton.edu")) {
+      throw new HttpsError("permission-denied", "Invalid email");
     }
-    throw new HttpsError(
-      "unknown",
-      `Couldn't fetch profile for ${request.auth.token.email}. ` +
-        "Please make sure you are logged in with a valid Milton email. " +
-        "If you believe this is an error, please email Programming Club."
-    );
+
+    const [firstName, lastName] = email
+      .split("@")[0]
+      .split("_")
+      .map((s) => s.charAt(0).toUpperCase() + s.slice(1));
+
+    const newProfile: Profile = {
+      alive: false,
+      chaser: "none",
+      class: "observer",
+      dayorboard: "observer",
+      firstName,
+      lastName,
+      tags: 0,
+      target: {
+        firstName: "None",
+        lastName: "",
+        email: "",
+      },
+    };
+
+    await db.collection("data").doc(email).set(newProfile);
+
+    return {
+      name: `${firstName} ${lastName}`,
+      target: {
+        name: "None",
+        email: "",
+      },
+      alive: false,
+      tags: 0,
+      location: "Observer",
+    };
   }
 });
 
-// tag out function
 export const tagOut = onCall(async (request) => {
-  console.log("tagOut called for", request.auth?.token.email);
-  // start off by verifying the user is authenticated
-  if (!request.auth) {
+  if (!request.auth || !request.auth.token.email) {
     throw new HttpsError("unauthenticated", "User must be authenticated");
   }
+
   const db = getFirestore();
+  const userEmail = request.auth.token.email;
 
   try {
-    await db.runTransaction(async (transaction) => {
-      const userDoc = await transaction.get(
-        db.doc("data/" + request.auth?.token.email)
-      );
-      const userData = userDoc.data() as Profile | undefined;
+    await db.runTransaction(async (tx) => {
+      const userDoc = await tx.get(db.doc(`data/${userEmail}`));
+      const user = userDoc.data() as Profile;
 
-      const chaserDoc = await transaction.get(
-        db.doc("data/" + userData?.chaser)
-      );
-      const chaserData = chaserDoc.data() as Profile | undefined;
-      const targetDoc = await transaction.get(
-        db.doc("data/" + userData?.target)
-      );
-      const targetData = targetDoc.data() as Profile | undefined;
+      const chaserDoc = await tx.get(db.doc(`data/${user.chaser}`));
+      const chaser = chaserDoc.data() as Profile;
 
-      if (!userData || !chaserData || !targetData) {
-        throw new HttpsError("not-found", "One of the profiles was not found");
+      const targetEmail = user.target.email;
+      const targetDoc = await tx.get(db.doc(`data/${targetEmail}`));
+      const target = targetDoc.data() as Profile;
+
+      if (!user || !chaser || !target) {
+        throw new HttpsError("not-found", "Profile missing");
       }
 
-      // increment the tagger's tag count
-      transaction.update(chaserDoc.ref, {
-        tags: chaserData.tags + 1,
-      });
-      // set the tagee to not alive
-      transaction.update(userDoc.ref, {
-        alive: false,
-      });
-      // set the tagee's target to the chaser's target
-      transaction.update(chaserDoc.ref, {
-        target: userData.target,
-      });
-      // ... and set the target to have the chaser as their new chaser
-      transaction.update(targetDoc.ref, {
-        chaser: userData.chaser,
+      const newTargetSnapshot = {
+        firstName: target.firstName,
+        lastName: target.lastName,
+        email: targetEmail,
+        location: target.location,
+      };
+
+      tx.update(chaserDoc.ref, {
+        tags: chaser.tags + 1,
+        target: newTargetSnapshot,
       });
 
-      // finally, create an empty lastWords field for the tagee
-      transaction.set(db.doc("lastWords/" + request.auth?.token.email), {
+      tx.update(userDoc.ref, {
+        alive: false,
+      });
+
+      tx.update(targetDoc.ref, {
+        chaser: user.chaser,
+      });
+
+      tx.set(db.doc(`lastWords/${userEmail}`), {
         lw: "",
-        author: userData.firstName + " " + userData.lastName,
+        author: `${user.firstName} ${user.lastName}`,
         timestamp: Date.now(),
       });
     });
 
     return { status: 200 };
-  } catch (e) {
-    throw new HttpsError("unknown", "Tag out could not be completed");
+  } catch {
+    throw new HttpsError("unknown", "Tag out failed");
   }
 });
 
 export const setLastWords = onCall(async (request) => {
-  console.log("setLastWords called for", request.auth?.token.email);
-  // start off by verifying the user is authenticated
-  if (!request.auth) {
+  if (!request.auth || !request.auth.token.email) {
     throw new HttpsError("unauthenticated", "User must be authenticated");
   }
-  const db = getFirestore();
 
-  const lastWords: string = request.data.lastWords;
+  const lastWords = request.data.lastWords;
   if (typeof lastWords !== "string") {
     throw new HttpsError("invalid-argument", "lastWords must be a string");
   }
 
-  const lastWordsDocRef = db.doc("lastWords/" + request.auth?.token.email);
+  const db = getFirestore();
+  const ref = db.doc(`lastWords/${request.auth.token.email}`);
+  const snap = await ref.get();
 
-  lastWordsDocRef.get().then((doc) => {
-    if (!doc.exists) {
-      throw new HttpsError("not-found", "Last words document not found");
-    }
-    if ((doc.data() as any).lw && (doc.data() as any).lw.length > 0) {
-      throw new HttpsError("already-exists", "Last words already set");
-    }
-  });
+  if (!snap.exists) {
+    throw new HttpsError("not-found", "Last words doc not found");
+  }
 
-  // set the last words
-  await lastWordsDocRef.update({
-    lw: lastWords,
-  });
+  if ((snap.data() as any).lw) {
+    throw new HttpsError("already-exists", "Last words already set");
+  }
 
-  console.log("Last words set for", request.auth?.token.email);
+  await ref.update({ lw: lastWords });
   return { status: 200 };
 });
