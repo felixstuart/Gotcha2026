@@ -32,3 +32,13 @@ export interface ClientProfile {
 export interface ClientTaggedOutResponse {
   status: number;
 }
+
+export interface LastWordsEntry {
+  lw: string;
+  author: string;
+  timestamp: number;
+}
+
+export interface ClientLastWordsResponse {
+  lastWords: Array<LastWordsEntry>;
+}

@@ -5,7 +5,12 @@ import { getFunctions, httpsCallable } from "firebase/functions";
 import { redirect, useNavigate } from "react-router";
 import GotchaLoader from "components/GotchaHand";
 import type { Route } from "../+types/root";
-import type { ClientProfile, ClientTaggedOutResponse } from "../../../types";
+import type {
+  ClientLastWordsResponse,
+  ClientProfile,
+  ClientTaggedOutResponse,
+  LastWordsEntry,
+} from "../../../types";
 import { TagOut } from "components/TagOut";
 import React from "react";
 
@@ -24,21 +29,27 @@ export async function clientLoader() {
   const getProfile = httpsCallable(functions, "getProfile");
 
   const profileResult = await getProfile({}); // always pass an object
-  console.log(profileResult.data);
-  return { profile: profileResult.data, user: user };
+
+  const getLastWords = httpsCallable(functions, "getLastWords");
+  const lastWordsResult = await getLastWords({});
+  return {
+    profile: profileResult.data,
+    user: user,
+    lastWords: lastWordsResult.data,
+  };
 }
 
 export default function Profile({ loaderData }: Route.ComponentProps) {
-  const { profile, user } = loaderData as unknown as {
+  const { profile, user, lastWords } = loaderData as unknown as {
     profile: ClientProfile;
     user: any;
+    lastWords: ClientLastWordsResponse;
   };
 
   const [alive, setAlive] = React.useState(profile.alive);
   const navigate = useNavigate();
-
+  console.log(lastWords);
   const tagOut = async () => {
-    console.log("tagOut() invoked");
     try {
       const tagOut = httpsCallable(functions, "tagOut");
       const tagOutResult = await tagOut({});
@@ -58,31 +69,62 @@ export default function Profile({ loaderData }: Route.ComponentProps) {
   };
 
   return (
-    <div className="p-4">
-      {/* set of cards */}
-      <h1>Profile</h1>
-      {/* name and profile image card */}
-      <div className="bg-slate-800 p-4 rounded-lg m-4 text-center items-center flex flex-col space-y-4">
-        <img src={user.photoURL} className="rounded-full" />
-        <h2 className="text-2xl font-bold">{profile.name}</h2>
-      </div>
-      {alive ? (
-        <div className="flex space-x-2">
-          <div className="bg-slate-800 p-4 rounded-lg text-center items-center flex flex-col flex-1">
+    <>
+      <div className="p-4">
+        {/* set of cards */}
+        <h1>Profile</h1>
+        {/* name and profile image card */}
+        <div className="bg-slate-800 p-4 rounded-lg m-4 text-center items-center flex flex-col space-y-4">
+          <img src={user.photoURL} className="rounded-full" />
+          <h2 className="text-2xl font-bold">{profile.name}</h2>
+        </div>
+        {alive ? (
+          <div className="m-4 flex space-x-2">
+            <div className="bg-slate-800 p-4 rounded-lg text-center items-center flex flex-col flex-1">
+              {/* tag counter */}
+              <h2 className="text-xl font-semibold">Tags</h2>
+              <h1 className="text-2xl font-bold">{profile.tags}</h1>
+            </div>
+            <TagOut text="Tag Out" onConfirm={tagOut} />
+          </div>
+        ) : (
+          <div className="bg-slate-800 p-4 rounded-lg m-4 text-center items-center flex flex-col flex-1">
             {/* tag counter */}
             <h2 className="text-xl font-semibold">Tags</h2>
             <h1 className="text-2xl font-bold">{profile.tags}</h1>
           </div>
-          <TagOut text="Tag Out" onConfirm={tagOut} />
+        )}
+        {alive ? (
+          <div className="bg-slate-800 p-4 rounded-lg m-4 text-center items-center flex flex-col">
+            <h2 className="text-xl font-semibold">Target</h2>
+            <h1 className="text-2xl font-bold">{profile.target.name}</h1>
+            <p className="italic font-light text-slate-300">
+              {profile.target.email}
+            </p>
+          </div>
+        ) : null}
+      </div>
+      <div>
+        <h1>Last Words</h1>
+        <div>
+          {lastWords.lastWords.map((lw: LastWordsEntry) => (
+            <div key={lw.timestamp} className="bg-slate-800 p-4 rounded-lg m-4">
+              <p className="italic text-white">"{lw.lw}"</p>
+              <p className="text-sm text-slate-300">
+                - {lw.author} at{" "}
+                {new Date(lw.timestamp).toLocaleString(undefined, {
+                  year: "numeric",
+                  month: "numeric",
+                  day: "numeric",
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}
+              </p>
+            </div>
+          ))}
         </div>
-      ) : (
-        <div className="bg-slate-800 p-4 rounded-lg text-center items-center flex flex-col flex-1">
-          {/* tag counter */}
-          <h2 className="text-xl font-semibold">Tags</h2>
-          <h1 className="text-2xl font-bold">{profile.tags}</h1>
-        </div>
-      )}
-    </div>
+      </div>
+    </>
   );
 }
 

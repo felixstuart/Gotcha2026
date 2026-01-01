@@ -3,7 +3,7 @@ import { HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
-import { Profile } from "../../types";
+import { Profile, LastWordsEntry } from "../../types";
 
 initializeApp();
 setGlobalOptions({ maxInstances: 10 });
@@ -159,4 +159,22 @@ export const setLastWords = onCall(async (request) => {
 
   await ref.update({ lw: lastWords });
   return { status: 200 };
+});
+
+export const getLastWords = onCall(async (request) => {
+  if (!request.auth || !request.auth.token.email) {
+    throw new HttpsError("unauthenticated", "User must be authenticated");
+  }
+
+  const db = getFirestore();
+  const snaps = await db
+    .collection("lastWords")
+    .where("lw", "!=", "")
+    .orderBy("lw")
+    .orderBy("timestamp", "desc")
+    .limit(10)
+    .get();
+
+  const lastWords = snaps.docs.map((doc) => doc.data()) as LastWordsEntry[];
+  return { lastWords };
 });
