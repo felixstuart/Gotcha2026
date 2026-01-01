@@ -1,5 +1,5 @@
 import * as admin from "firebase-admin";
-import { type Profile } from "./types";
+import { type Profile, type Leaderboard } from "./types";
 
 // Initialize Firebase Admin SDK for emulator
 admin.initializeApp({
@@ -35,7 +35,7 @@ async function seedProfiles() {
       firstName: "Alex",
       lastName: "Chen",
       class: "senior",
-      dayorboard: "board",
+      dayorboard: "wolcott",
       tags: 0,
       chaser: "felix_stuart27@milton.edu",
       target: {
@@ -78,11 +78,162 @@ async function seedProfiles() {
   // Verify the data was written
   const snapshot = await db.collection("data").get();
   console.log(`📊 Total profiles in emulator: ${snapshot.size}`);
-
-  process.exit(0);
 }
 
-seedProfiles().catch((err) => {
-  console.error("❌ Error seeding profiles:", err);
-  process.exit(1);
-});
+async function seedLeaderboard() {
+  console.log("📝 Seeding leaderboard and 10 new users...");
+  const batch = db.batch();
+
+  const users = [
+    {
+      firstName: "Alice",
+      lastName: "Smith",
+      location: "Library",
+      tags: 10,
+      class: "senior",
+      dayorboard: "wolcott",
+    },
+    {
+      firstName: "Bob",
+      lastName: "Jones",
+      location: "Dining Hall",
+      tags: 9,
+      class: "junior",
+      dayorboard: "robbins",
+    },
+    {
+      firstName: "Charlie",
+      lastName: "Brown",
+      location: "Gym",
+      tags: 8,
+      class: "sophomore",
+      dayorboard: "forbes",
+    },
+    {
+      firstName: "David",
+      lastName: "Wilson",
+      location: "Science Center",
+      tags: 7,
+      class: "freshman",
+      dayorboard: "goodwin",
+    },
+    {
+      firstName: "Eva",
+      lastName: "Davis",
+      location: "Art Center",
+      tags: 6,
+      class: "senior",
+      dayorboard: "hallowell",
+    },
+    {
+      firstName: "Frank",
+      lastName: "Miller",
+      location: "Student Center",
+      tags: 5,
+      class: "junior",
+      dayorboard: "norris",
+    },
+    {
+      firstName: "Grace",
+      lastName: "Taylor",
+      location: "Chapel",
+      tags: 4,
+      class: "sophomore",
+      dayorboard: "millet",
+    },
+    {
+      firstName: "Henry",
+      lastName: "Anderson",
+      location: "Field House",
+      tags: 3,
+      class: "freshman",
+      dayorboard: "wolcott",
+    },
+    {
+      firstName: "Ivy",
+      lastName: "Thomas",
+      location: "Dorm",
+      tags: 2,
+      class: "senior",
+      dayorboard: "robbins",
+    },
+    {
+      firstName: "Jack",
+      lastName: "White",
+      location: "Classroom",
+      tags: 1,
+      class: "junior",
+      dayorboard: "forbes",
+    },
+  ];
+
+  const profiles: Profile[] = users.map((user, index) => {
+    const nextIndex = (index + 1) % users.length;
+    const prevIndex = (index - 1 + users.length) % users.length;
+    const targetUser = users[nextIndex];
+    const chaserUser = users[prevIndex];
+
+    return {
+      alive: true,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      class: user.class,
+      dayorboard: user.dayorboard,
+      tags: user.tags,
+      location: user.location,
+      chaser: `${chaserUser.firstName.toLowerCase()}_${chaserUser.lastName.toLowerCase()}@milton.edu`,
+      target: {
+        firstName: targetUser.firstName,
+        lastName: targetUser.lastName,
+        email: `${targetUser.firstName.toLowerCase()}_${targetUser.lastName.toLowerCase()}@milton.edu`,
+        location: targetUser.location,
+      },
+    };
+  });
+
+  // Add profiles to batch
+  profiles.forEach((p) => {
+    const email = `${p.firstName.toLowerCase()}_${p.lastName.toLowerCase()}@milton.edu`;
+    const ref = db.collection("data").doc(email);
+    batch.set(ref, p);
+  });
+
+  const leaderboardRef = db.doc("leaderboard/main");
+
+  const leaderboardData: Leaderboard = {
+    topTaggers: profiles.map((p) => ({
+      name: `${p.firstName} ${p.lastName}`,
+      tags: p.tags,
+    })),
+    byDorms: [
+      { dorm: "wolcott", tags: 13 },
+      { dorm: "robbins", tags: 11 },
+      { dorm: "forbes", tags: 9 },
+      { dorm: "goodwin", tags: 7 },
+      { dorm: "hallowell", tags: 6 },
+      { dorm: "norris", tags: 5 },
+      { dorm: "millet", tags: 4 },
+    ],
+    byClass: [
+      { class: "senior", tags: 18 },
+      { class: "junior", tags: 15 },
+      { class: "sophomore", tags: 12 },
+      { class: "freshman", tags: 10 },
+    ],
+    lastUpdated: Date.now(),
+  };
+
+  batch.set(leaderboardRef, leaderboardData);
+  await batch.commit();
+  console.log("✅ Seeded leaderboard and 10 users successfully");
+}
+
+Promise.all([seedProfiles(), seedLeaderboard()])
+  .then(() => {
+    console.log("✨ All seeding completed");
+    process.exit(0);
+  })
+  .catch((err) => {
+    console.error("❌ Error seeding:", err);
+    process.exit(1);
+  });

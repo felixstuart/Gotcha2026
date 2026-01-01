@@ -104,8 +104,8 @@ export default function Profile({ loaderData }: Route.ComponentProps) {
           </div>
         ) : null}
       </div>
-      <div>
-        <h1>Last Words</h1>
+      <div className="p-4">
+        <h1 className="font-bold text-xl">Last Words</h1>
         <div>
           {lastWords.lastWords.map((lw: LastWordsEntry) => (
             <div key={lw.timestamp} className="bg-slate-800 p-4 rounded-lg m-4">

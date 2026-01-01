@@ -23,8 +23,8 @@ export function LeaderboardCard({
       >
         <h2>{position}</h2>
       </div>
-      <h1 className="font-bold">{name}</h1>
-      <h2>{tags}</h2>
+      <h1 className="font-bold text-left flex-1">{name}</h1>
+      <h2 className="text-right">{tags}</h2>
     </div>
   );
 }

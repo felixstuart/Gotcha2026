@@ -42,3 +42,20 @@ export interface LastWordsEntry {
 export interface ClientLastWordsResponse {
   lastWords: Array<LastWordsEntry>;
 }
+
+export interface Leaderboard {
+  topTaggers : Array<{
+    name: string;
+    tags: number;
+  }>;
+  byDorms: Array<{
+    dorm: string;
+    tags: number;
+  }>;
+  byClass: Array<{
+    class: string;
+    tags: number;
+  }>;
+
+  lastUpdated: number;
+}
