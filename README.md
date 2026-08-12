@@ -13,5 +13,9 @@ Cloud Functions are a new addition to the architecture this year. More informati
 
 To run Gotcha on your computer, you will need the Firebase packages and the Firebase emulator packages. Most packages can be installed with `npm`. There is a seeding script that will attach to the Firestore emulator and seed two dummy profiles and a third; currently, the third profile is set to me (felix_stuart27@milton.edu) but feel free to change it to whatever you please.
 
+To run the seed script, run `npx tsx seed.ts` from the root of the project. It will create 12 profiles: 10 for the leaderboard, and two as a target and chaser for you. 
+
+You can start emulators with the `firebase emulators:start` command. The emulators are essential for local development---none of the cloud functions are deployed. 
+
 This codebase makes heavy use of TypeScript. I'd highly recommend reading up at least a little but on what it is and how it works because it can be a pain sometimes, and while IDEs have excellent support for it, their suggestions can sometimes lead you down the wrong path. 
 
