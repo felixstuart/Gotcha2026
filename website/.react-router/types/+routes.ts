@@ -23,12 +23,15 @@ type Pages = {
   "/app/last-words": {
     params: {};
   };
+  "/app/admin": {
+    params: {};
+  };
 };
 
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/app/profile" | "/app/leaderboard" | "/app/last-words";
+    page: "/" | "/app/profile" | "/app/leaderboard" | "/app/last-words" | "/app/admin";
   };
   "./routes/home.tsx": {
     id: "routes/home";
@@ -50,6 +53,10 @@ type RouteFiles = {
     id: "routes/last-words";
     page: "/app/last-words";
   };
+  "routes/admin.tsx": {
+    id: "routes/admin";
+    page: "/app/admin";
+  };
 };
 
 type RouteModules = {
@@ -59,4 +66,5 @@ type RouteModules = {
   "routes/profile": typeof import("./app/routes/profile.tsx");
   "routes/leaderboard": typeof import("./app/routes/leaderboard.tsx");
   "routes/last-words": typeof import("./app/routes/last-words.tsx");
+  "routes/admin": typeof import("./app/routes/admin.tsx");
 };

@@ -14,6 +14,7 @@ export default [
       route("leaderboard", "routes/leaderboard.tsx"),
     ]),
     route("last-words", "routes/last-words.tsx"),
+    route("admin", "routes/admin.tsx")
   ]),
 ] satisfies RouteConfig;
 //
