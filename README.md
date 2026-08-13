@@ -23,6 +23,6 @@ Full command list:
 1. `npm install` in the root directory, `functions/`, and `website/` (installs dependencies)
 2. `firebase login` if you haven't already
 3. `npm run build` in `functions/`
-4. `npx tsx seed.ts` from the project root
-5. `firebase emulators:start` in the root directory
+4. `firebase emulators:start` in the root directory
+5. `npx tsx seed.ts` from the project root
 6. `npm run dev` in `website/`

@@ -54,11 +54,41 @@ async function seedProfiles() {
       tags: 0,
       chaser: "alex_chen@milton.edu",
       target: {
+        firstName: "Isaac",
+        lastName: "Wu",
+        email: "isaac_wu28@milton.edu",
+      },
+      location: "Stu",
+    },
+    "isaac_wu28@milton.edu": {
+      alive: true,
+      firstName: "Isaac",
+      lastName: "Wu",
+      class: "junior",
+      dayorboard: "day",
+      tags: 0,
+      chaser: "jordan_lee@milton.edu",
+      target: {
+        firstName: "Aarav",
+        lastName: "Agrawal",
+        email: "aarav_agrawal27@milton.edu",
+      },
+      location: "FMC",
+    },
+    "aarav_agrawal27@milton.edu": {
+      alive: true,
+      firstName: "Aarav",
+      lastName: "Agrawal",
+      class: "senior",
+      dayorboard: "day",
+      tags: 0,
+      chaser: "isaac_wu28@milton.edu",
+      target: {
         firstName: "Felix",
         lastName: "Stuart",
         email: "felix_stuart27@milton.edu",
       },
-      location: "Stu",
+      location: "Robotics lab",
     },
   };
 

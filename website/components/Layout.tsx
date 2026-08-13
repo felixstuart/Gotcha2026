@@ -15,7 +15,7 @@ export default function Layout() {
             Gotcha
           </h1>
         </div>
-        <div className="flex ml-auto mr-4 space-x-2 *:font-bold text-center text-xl items-center *:hover:text-slate-300">
+        <div className="flex ml-auto mr-4 space-x-8 *:font-bold text-center text-xl items-center *:hover:text-slate-300">
           <NavLink className="flex items-center" to={"/app/profile"}>Profile</NavLink>
           <NavLink className="flex items-center" to={"/app/leaderboard"}>Leaderboard</NavLink>
         </div>

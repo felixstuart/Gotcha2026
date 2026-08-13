@@ -72,14 +72,14 @@ export default function Profile({ loaderData }: Route.ComponentProps) {
     <>
       <div className="p-4">
         {/* set of cards */}
-        <h1>Profile</h1>
+        <h1 className="font-bold text-xl">Profile</h1>
         {/* name and profile image card */}
         <div className="bg-slate-800 p-4 rounded-lg m-4 text-center items-center flex flex-col space-y-4">
           <img src={user.photoURL} className="rounded-full" />
           <h2 className="text-2xl font-bold">{profile.name}</h2>
         </div>
         {alive ? (
-          <div className="m-4 flex space-x-2">
+          <div className="m-4 flex-col space-y-4">
             <div className="bg-slate-800 p-4 rounded-lg text-center items-center flex flex-col flex-1">
               {/* tag counter */}
               <h2 className="text-xl font-semibold">Tags</h2>

@@ -132,7 +132,7 @@ export const TagOut = ({
   return (
     <motion.button
       type="button"
-      className="box-border whitespace-nowrap font-inherit text-2xl font-bold text-center cursor-pointer transition duration-100 ease-in-out bg-slate-800 rounded-md text-white leading-5 p-[0.35rem_1rem] relative overflow-hidden min-w-[200px] select-none touch-none hover:bg-slate-900 focus:outline-offset-6 focus-visible:shadow-none w-1/2"
+      className="box-border whitespace-nowrap font-inherit text-2xl font-bold text-center cursor-pointer transition duration-100 ease-in-out bg-slate-600 rounded-lg text-white leading-5 py-12 relative overflow-hidden min-w-50 w-full select-none touch-none hover:bg-slate-900 focus:outline-offset-6 focus-visible:shadow-none "
       ref={ref}
       onPointerDown={startCountdown}
       onPointerUp={pointerUp}
