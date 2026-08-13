@@ -2,6 +2,10 @@ import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { getFirestore } from "firebase-admin/firestore";
 import { Profile } from "../../types";
 
+/**
+ * Gets the user's profile and
+ * creates a **player** (not admin) profile if the user hasn't joined the game yet
+ */
 export const getProfile = onCall(async (request) => {
   if (!request.auth || !request.auth.token.email) {
     throw new HttpsError("unauthenticated", "User must be authenticated");
@@ -11,27 +15,20 @@ export const getProfile = onCall(async (request) => {
   const db = getFirestore();
 
   try {
-    const profileDoc = await db.collection("data").doc(email).get();
+    // Check if the user already has a profile
+
+    const profileDoc = await db.collection("data").doc(email).get(); // emails used as document id
     const profile = profileDoc.data() as Profile | undefined;
 
     if (!profile) throw new Error("Profile not found");
 
-    return {
-      name: `${profile.firstName} ${profile.lastName}`,
-      target: {
-        name: `${profile.target.firstName} ${profile.target.lastName}`,
-        email: profile.target.email,
-        location: profile.target.location,
-      },
-      alive: profile.alive,
-      tags: profile.tags,
-      location: profile.location || "Unknown",
-    };
+    return profile;
   } catch {
     if (!email.endsWith("@milton.edu")) {
       throw new HttpsError("permission-denied", "Invalid email");
     }
 
+    // Create a new profile if the user doesn't have one
     // Milton Academy student email format is [first name]_[last_name][last two digits of graduation year]@milton.edu
     const [firstName, lastName] = email
       .split("@")[0]
@@ -41,6 +38,7 @@ export const getProfile = onCall(async (request) => {
 
     const newProfile: Profile = {
       alive: false,
+      role: "player",
       chaser: "none",
       class: "observer",
       dayorboard: "observer",
@@ -56,15 +54,7 @@ export const getProfile = onCall(async (request) => {
 
     await db.collection("data").doc(email).set(newProfile);
 
-    return {
-      name: `${firstName} ${lastName}`,
-      target: {
-        name: "None",
-        email: "",
-      },
-      alive: false,
-      tags: 0,
-      location: "Observer",
-    };
+    return newProfile;
   }
 });
+

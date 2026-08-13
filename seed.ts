@@ -1,5 +1,5 @@
 import * as admin from "firebase-admin";
-import { type Profile, type Leaderboard } from "./types";
+import { type Profile, type Leaderboard, type Role } from "./types";
 
 // Initialize Firebase Admin SDK for emulator
 admin.initializeApp({
@@ -17,6 +17,7 @@ async function seedProfiles() {
   const profiles: Record<string, Profile> = {
     "felix_stuart27@milton.edu": {
       alive: true,
+      role: "player",
       firstName: "Felix",
       lastName: "Stuart",
       class: "junior",
@@ -32,6 +33,7 @@ async function seedProfiles() {
     },
     "alex_chen@milton.edu": {
       alive: true,
+      role: "player",
       firstName: "Alex",
       lastName: "Chen",
       class: "senior",
@@ -47,6 +49,7 @@ async function seedProfiles() {
     },
     "jordan_lee@milton.edu": {
       alive: true,
+      role: "player",
       firstName: "Jordan",
       lastName: "Lee",
       class: "sophomore",
@@ -62,6 +65,7 @@ async function seedProfiles() {
     },
     "isaac_wu28@milton.edu": {
       alive: true,
+      role: "admin",
       firstName: "Isaac",
       lastName: "Wu",
       class: "junior",
@@ -77,6 +81,7 @@ async function seedProfiles() {
     },
     "aarav_agrawal27@milton.edu": {
       alive: true,
+      role: "player",
       firstName: "Aarav",
       lastName: "Agrawal",
       class: "senior",
@@ -118,6 +123,7 @@ async function seedLeaderboard() {
     {
       firstName: "Alice",
       lastName: "Smith",
+      role: "player" as Role,
       location: "Library",
       tags: 10,
       class: "senior",
@@ -126,6 +132,7 @@ async function seedLeaderboard() {
     {
       firstName: "Bob",
       lastName: "Jones",
+      role: "player" as Role,
       location: "Dining Hall",
       tags: 9,
       class: "junior",
@@ -134,6 +141,7 @@ async function seedLeaderboard() {
     {
       firstName: "Charlie",
       lastName: "Brown",
+      role: "player" as Role,
       location: "Gym",
       tags: 8,
       class: "sophomore",
@@ -142,6 +150,7 @@ async function seedLeaderboard() {
     {
       firstName: "David",
       lastName: "Wilson",
+      role: "player" as Role,
       location: "Science Center",
       tags: 7,
       class: "freshman",
@@ -150,6 +159,7 @@ async function seedLeaderboard() {
     {
       firstName: "Eva",
       lastName: "Davis",
+      role: "player" as Role,
       location: "Art Center",
       tags: 6,
       class: "senior",
@@ -158,6 +168,7 @@ async function seedLeaderboard() {
     {
       firstName: "Frank",
       lastName: "Miller",
+      role: "player" as Role,
       location: "Student Center",
       tags: 5,
       class: "junior",
@@ -166,6 +177,7 @@ async function seedLeaderboard() {
     {
       firstName: "Grace",
       lastName: "Taylor",
+      role: "player" as Role,
       location: "Chapel",
       tags: 4,
       class: "sophomore",
@@ -174,6 +186,7 @@ async function seedLeaderboard() {
     {
       firstName: "Henry",
       lastName: "Anderson",
+      role: "player" as Role,
       location: "Field House",
       tags: 3,
       class: "freshman",
@@ -182,6 +195,7 @@ async function seedLeaderboard() {
     {
       firstName: "Ivy",
       lastName: "Thomas",
+      role: "player" as Role,
       location: "Dorm",
       tags: 2,
       class: "senior",
@@ -190,6 +204,7 @@ async function seedLeaderboard() {
     {
       firstName: "Jack",
       lastName: "White",
+      role: "player" as Role,
       location: "Classroom",
       tags: 1,
       class: "junior",
@@ -205,6 +220,7 @@ async function seedLeaderboard() {
 
     return {
       alive: true,
+      role: user.role,
       firstName: user.firstName,
       lastName: user.lastName,
       class: user.class,

@@ -119,12 +119,18 @@ const ErrorBoundary$1 = UNSAFE_withErrorBoundaryProps(function ErrorBoundary2({
     }), stack]
   });
 });
+function meta({}) {
+  return [{
+    title: "Gotcha"
+  }];
+}
 const route0 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   ErrorBoundary: ErrorBoundary$1,
   Layout: Layout$1,
   default: root,
-  links
+  links,
+  meta
 }, Symbol.toStringTag, { value: "Module" }));
 const FuzzyText = ({
   children,
@@ -314,14 +320,6 @@ const app = initializeApp(firebaseConfig);
 const remoteConfig = getRemoteConfig(app);
 const auth = getAuth(app);
 const functions = getFunctions(app, "us-central1");
-function meta({}) {
-  return [{
-    title: "New React Router App"
-  }, {
-    name: "description",
-    content: "Welcome to React Router!"
-  }];
-}
 const home = UNSAFE_withComponentProps(function Home() {
   const navigate = useNavigate();
   const signInWithGoogle = async () => {
@@ -367,8 +365,7 @@ const home = UNSAFE_withComponentProps(function Home() {
 });
 const route1 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
-  default: home,
-  meta
+  default: home
 }, Symbol.toStringTag, { value: "Module" }));
 const GotchaLogo = "/assets/gotcha-logo-B-MkBQe_.png";
 const Layout = UNSAFE_withComponentProps(function Layout2() {
@@ -387,7 +384,7 @@ const Layout = UNSAFE_withComponentProps(function Layout2() {
           children: "Gotcha"
         })]
       }), /* @__PURE__ */ jsxs("div", {
-        className: "flex ml-auto mr-4 space-x-2 *:font-bold text-center text-xl items-center *:hover:text-slate-300",
+        className: "flex ml-auto mr-4 space-x-8 *:font-bold text-center text-xl items-center *:hover:text-slate-300",
         children: [/* @__PURE__ */ jsx(NavLink, {
           className: "flex items-center",
           to: "/app/profile",
@@ -522,7 +519,7 @@ const TagOut = ({
     motion.button,
     {
       type: "button",
-      className: "box-border whitespace-nowrap font-inherit text-2xl font-bold text-center cursor-pointer transition duration-100 ease-in-out bg-slate-800 rounded-md text-white leading-5 p-[0.35rem_1rem] relative overflow-hidden min-w-[200px] select-none touch-none hover:bg-slate-900 focus:outline-offset-6 focus-visible:shadow-none w-1/2",
+      className: "box-border whitespace-nowrap font-inherit text-2xl font-bold text-center cursor-pointer transition duration-100 ease-in-out bg-slate-600 rounded-lg text-white leading-5 py-12 relative overflow-hidden min-w-50 w-full select-none touch-none hover:bg-slate-900 focus:outline-offset-6 focus-visible:shadow-none ",
       ref,
       onPointerDown: startCountdown,
       onPointerUp: pointerUp,
@@ -560,7 +557,7 @@ const TagOut = ({
     }
   );
 };
-async function clientLoader$1() {
+async function clientLoader$2() {
   const user = await new Promise((resolve) => {
     const unsubscribe = onAuthStateChanged(auth, (user2) => {
       unsubscribe();
@@ -615,18 +612,19 @@ const profile = UNSAFE_withComponentProps(function Profile({
     children: [/* @__PURE__ */ jsxs("div", {
       className: "p-4",
       children: [/* @__PURE__ */ jsx("h1", {
+        className: "font-bold text-xl",
         children: "Profile"
       }), /* @__PURE__ */ jsxs("div", {
         className: "bg-slate-800 p-4 rounded-lg m-4 text-center items-center flex flex-col space-y-4",
         children: [/* @__PURE__ */ jsx("img", {
           src: user.photoURL,
           className: "rounded-full"
-        }), /* @__PURE__ */ jsx("h2", {
+        }), /* @__PURE__ */ jsxs("h2", {
           className: "text-2xl font-bold",
-          children: profile2.name
+          children: [profile2.firstName, " ", profile2.lastName]
         })]
       }), alive ? /* @__PURE__ */ jsxs("div", {
-        className: "m-4 flex space-x-2",
+        className: "m-4 flex-col space-y-4",
         children: [/* @__PURE__ */ jsxs("div", {
           className: "bg-slate-800 p-4 rounded-lg text-center items-center flex flex-col flex-1",
           children: [/* @__PURE__ */ jsx("h2", {
@@ -654,9 +652,9 @@ const profile = UNSAFE_withComponentProps(function Profile({
         children: [/* @__PURE__ */ jsx("h2", {
           className: "text-xl font-semibold",
           children: "Target"
-        }), /* @__PURE__ */ jsx("h1", {
+        }), /* @__PURE__ */ jsxs("h1", {
           className: "text-2xl font-bold",
-          children: profile2.target.name
+          children: [profile2.target.firstName, " ", profile2.target.lastName]
         }), /* @__PURE__ */ jsx("p", {
           className: "italic font-light text-slate-300",
           children: profile2.target.email
@@ -718,7 +716,7 @@ const route3 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProper
   __proto__: null,
   ErrorBoundary,
   HydrateFallback,
-  clientLoader: clientLoader$1,
+  clientLoader: clientLoader$2,
   default: profile
 }, Symbol.toStringTag, { value: "Module" }));
 function LeaderboardCard({
@@ -739,7 +737,7 @@ function LeaderboardCard({
     /* @__PURE__ */ jsx("h2", { className: "text-right", children: tags })
   ] });
 }
-async function clientLoader() {
+async function clientLoader$1() {
   await fetchAndActivate(remoteConfig);
   const endDateValue = getValue(remoteConfig, "endDate");
   const endDate = endDateValue.asString();
@@ -779,17 +777,20 @@ const leaderboard = UNSAFE_withComponentProps(function Leaderboard({
     return () => clearInterval(intervalId);
   }, [endDate]);
   return /* @__PURE__ */ jsxs("div", {
-    className: "flex flex-1 p-8 items-center",
-    children: [/* @__PURE__ */ jsx("div", {
+    className: "flex flex-col sm:flex-col md:flex-row flex-1 p-8 items-center",
+    children: [/* @__PURE__ */ jsxs("div", {
       className: "space-y-2",
-      children: leaderboard2 && leaderboard2.topTaggers && leaderboard2.topTaggers.map(({
+      children: [/* @__PURE__ */ jsx("h1", {
+        className: "font-bold text-xl",
+        children: "Leaderboard"
+      }), leaderboard2 && leaderboard2.topTaggers && leaderboard2.topTaggers.map(({
         name,
         tags
       }, index) => /* @__PURE__ */ jsx(LeaderboardCard, {
         name,
         tags,
         position: index + 1
-      }, index))
+      }, index))]
     }), /* @__PURE__ */ jsxs("div", {
       className: "flex flex-1 flex-col items-center justify-start p-4 rounded-xl space-y-8",
       children: [/* @__PURE__ */ jsx("h1", {
@@ -840,7 +841,7 @@ const leaderboard = UNSAFE_withComponentProps(function Leaderboard({
 });
 const route4 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
-  clientLoader,
+  clientLoader: clientLoader$1,
   default: leaderboard
 }, Symbol.toStringTag, { value: "Module" }));
 const LetterGlitch = ({
@@ -1161,7 +1162,55 @@ const route5 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProper
   __proto__: null,
   default: lastWords
 }, Symbol.toStringTag, { value: "Module" }));
-const serverManifest = { "entry": { "module": "/assets/entry.client-B84uc3pJ.js", "imports": ["/assets/jsx-runtime-JynghGLN.js"], "css": [] }, "routes": { "root": { "id": "root", "parentId": void 0, "path": "", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasClientMiddleware": false, "hasErrorBoundary": true, "module": "/assets/root-B4lYBlwc.js", "imports": ["/assets/jsx-runtime-JynghGLN.js"], "css": ["/assets/root-8NBwMc0Z.css"], "clientActionModule": void 0, "clientLoaderModule": void 0, "clientMiddlewareModule": void 0, "hydrateFallbackModule": void 0 }, "routes/home": { "id": "routes/home", "parentId": "root", "path": void 0, "index": true, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasClientMiddleware": false, "hasErrorBoundary": false, "module": "/assets/home-D16QHDIo.js", "imports": ["/assets/jsx-runtime-JynghGLN.js", "/assets/firebase-BEZWKe1S.js"], "css": [], "clientActionModule": void 0, "clientLoaderModule": void 0, "clientMiddlewareModule": void 0, "hydrateFallbackModule": void 0 }, "../components/Layout": { "id": "../components/Layout", "parentId": "root", "path": void 0, "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasClientMiddleware": false, "hasErrorBoundary": false, "module": "/assets/Layout-D2b2ftB9.js", "imports": ["/assets/jsx-runtime-JynghGLN.js"], "css": [], "clientActionModule": void 0, "clientLoaderModule": void 0, "clientMiddlewareModule": void 0, "hydrateFallbackModule": void 0 }, "routes/profile": { "id": "routes/profile", "parentId": "../components/Layout", "path": "app/profile", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": true, "hasClientMiddleware": false, "hasErrorBoundary": true, "module": "/assets/profile-95vNOMcM.js", "imports": ["/assets/jsx-runtime-JynghGLN.js", "/assets/firebase-BEZWKe1S.js", "/assets/proxy-CP9qdnAC.js"], "css": [], "clientActionModule": void 0, "clientLoaderModule": void 0, "clientMiddlewareModule": void 0, "hydrateFallbackModule": void 0 }, "routes/leaderboard": { "id": "routes/leaderboard", "parentId": "../components/Layout", "path": "app/leaderboard", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": true, "hasClientMiddleware": false, "hasErrorBoundary": false, "module": "/assets/leaderboard-DOw-xhhN.js", "imports": ["/assets/jsx-runtime-JynghGLN.js", "/assets/firebase-BEZWKe1S.js"], "css": [], "clientActionModule": void 0, "clientLoaderModule": void 0, "clientMiddlewareModule": void 0, "hydrateFallbackModule": void 0 }, "routes/last-words": { "id": "routes/last-words", "parentId": "root", "path": "app/last-words", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasClientMiddleware": false, "hasErrorBoundary": false, "module": "/assets/last-words-B4GEedBC.js", "imports": ["/assets/jsx-runtime-JynghGLN.js", "/assets/firebase-BEZWKe1S.js", "/assets/proxy-CP9qdnAC.js"], "css": [], "clientActionModule": void 0, "clientLoaderModule": void 0, "clientMiddlewareModule": void 0, "hydrateFallbackModule": void 0 } }, "url": "/assets/manifest-5e7d9c55.js", "version": "5e7d9c55", "sri": void 0 };
+async function clientLoader() {
+  const user = await new Promise((resolve) => {
+    const unsubscribe = onAuthStateChanged(auth, (user2) => {
+      unsubscribe();
+      resolve(user2);
+    });
+  });
+  if (!user || !user.email?.endsWith("@milton.edu")) {
+    return redirect("/");
+  }
+  const getProfile = httpsCallable(functions, "getProfile");
+  const profileResult = (await getProfile({})).data;
+  console.log(profileResult);
+  return {
+    profile: profileResult,
+    user
+  };
+}
+const admin = UNSAFE_withComponentProps(function AdminPanel({
+  loaderData
+}) {
+  const {
+    profile: profile2,
+    user
+  } = loaderData;
+  console.log(profile2);
+  console.log(user);
+  const [searchText, setSearchText] = useState("");
+  return /* @__PURE__ */ jsx(Fragment, {
+    children: /* @__PURE__ */ jsxs("div", {
+      className: "p-6",
+      children: [/* @__PURE__ */ jsxs("div", {
+        className: "text-lg pb-4",
+        children: ["Salutations, ", profile2.firstName, " ", profile2.lastName, ". The Gotcha admin panel is at your service."]
+      }), /* @__PURE__ */ jsx("input", {
+        value: searchText,
+        onChange: (event) => setSearchText(event.target.value),
+        placeholder: "Search players by name or email...",
+        className: "border-2 rounded-sm p-2 w-full"
+      })]
+    })
+  });
+});
+const route6 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  clientLoader,
+  default: admin
+}, Symbol.toStringTag, { value: "Module" }));
+const serverManifest = { "entry": { "module": "/assets/entry.client-BUR5AqMv.js", "imports": ["/assets/jsx-runtime-jioiABin.js"], "css": [] }, "routes": { "root": { "id": "root", "parentId": void 0, "path": "", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasClientMiddleware": false, "hasErrorBoundary": true, "module": "/assets/root-D_dYqQID.js", "imports": ["/assets/jsx-runtime-jioiABin.js"], "css": ["/assets/root-Cb12WqZP.css"], "clientActionModule": void 0, "clientLoaderModule": void 0, "clientMiddlewareModule": void 0, "hydrateFallbackModule": void 0 }, "routes/home": { "id": "routes/home", "parentId": "root", "path": void 0, "index": true, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasClientMiddleware": false, "hasErrorBoundary": false, "module": "/assets/home-C9rRrOj2.js", "imports": ["/assets/jsx-runtime-jioiABin.js", "/assets/firebase-DgHvPz6v.js"], "css": [], "clientActionModule": void 0, "clientLoaderModule": void 0, "clientMiddlewareModule": void 0, "hydrateFallbackModule": void 0 }, "../components/Layout": { "id": "../components/Layout", "parentId": "root", "path": void 0, "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasClientMiddleware": false, "hasErrorBoundary": false, "module": "/assets/Layout-CYY9l6Xg.js", "imports": ["/assets/jsx-runtime-jioiABin.js"], "css": [], "clientActionModule": void 0, "clientLoaderModule": void 0, "clientMiddlewareModule": void 0, "hydrateFallbackModule": void 0 }, "routes/profile": { "id": "routes/profile", "parentId": "../components/Layout", "path": "app/profile", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": true, "hasClientMiddleware": false, "hasErrorBoundary": true, "module": "/assets/profile-B61pbri9.js", "imports": ["/assets/jsx-runtime-jioiABin.js", "/assets/firebase-DgHvPz6v.js", "/assets/proxy-DrPk0-nW.js"], "css": [], "clientActionModule": void 0, "clientLoaderModule": void 0, "clientMiddlewareModule": void 0, "hydrateFallbackModule": void 0 }, "routes/leaderboard": { "id": "routes/leaderboard", "parentId": "../components/Layout", "path": "app/leaderboard", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": true, "hasClientMiddleware": false, "hasErrorBoundary": false, "module": "/assets/leaderboard-BdLbOmig.js", "imports": ["/assets/jsx-runtime-jioiABin.js", "/assets/firebase-DgHvPz6v.js"], "css": [], "clientActionModule": void 0, "clientLoaderModule": void 0, "clientMiddlewareModule": void 0, "hydrateFallbackModule": void 0 }, "routes/last-words": { "id": "routes/last-words", "parentId": "root", "path": "app/last-words", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasClientMiddleware": false, "hasErrorBoundary": false, "module": "/assets/last-words-es_xlYs7.js", "imports": ["/assets/jsx-runtime-jioiABin.js", "/assets/firebase-DgHvPz6v.js", "/assets/proxy-DrPk0-nW.js"], "css": [], "clientActionModule": void 0, "clientLoaderModule": void 0, "clientMiddlewareModule": void 0, "hydrateFallbackModule": void 0 }, "routes/admin": { "id": "routes/admin", "parentId": "root", "path": "app/admin", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": true, "hasClientMiddleware": false, "hasErrorBoundary": false, "module": "/assets/admin-BL4a4s-R.js", "imports": ["/assets/jsx-runtime-jioiABin.js", "/assets/firebase-DgHvPz6v.js"], "css": [], "clientActionModule": void 0, "clientLoaderModule": void 0, "clientMiddlewareModule": void 0, "hydrateFallbackModule": void 0 } }, "url": "/assets/manifest-0d6050ad.js", "version": "0d6050ad", "sri": void 0 };
 const assetsBuildDirectory = "build/client";
 const basename = "/";
 const future = { "unstable_optimizeDeps": false, "unstable_subResourceIntegrity": false, "v8_middleware": false, "v8_splitRouteModules": false, "v8_viteEnvironmentApi": false };
@@ -1219,6 +1268,14 @@ const routes = {
     index: void 0,
     caseSensitive: void 0,
     module: route5
+  },
+  "routes/admin": {
+    id: "routes/admin",
+    parentId: "root",
+    path: "app/admin",
+    index: void 0,
+    caseSensitive: void 0,
+    module: route6
   }
 };
 export {

@@ -7,7 +7,7 @@ import GotchaLoader from "../../components/GotchaHand";
 import type { Route } from "../+types/root";
 import type {
   ClientLastWordsResponse,
-  ClientProfile,
+  Profile,
   ClientTaggedOutResponse,
   LastWordsEntry,
 } from "../../../types";
@@ -29,7 +29,6 @@ export async function clientLoader() {
   const getProfile = httpsCallable(functions, "getProfile");
 
   const profileResult = await getProfile({}); // always pass an object
-
   const getLastWords = httpsCallable(functions, "getLastWords");
   const lastWordsResult = await getLastWords({});
   return {
@@ -41,7 +40,7 @@ export async function clientLoader() {
 
 export default function Profile({ loaderData }: Route.ComponentProps) {
   const { profile, user, lastWords } = loaderData as unknown as {
-    profile: ClientProfile;
+    profile: Profile;
     user: any;
     lastWords: ClientLastWordsResponse;
   };
@@ -76,7 +75,7 @@ export default function Profile({ loaderData }: Route.ComponentProps) {
         {/* name and profile image card */}
         <div className="bg-slate-800 p-4 rounded-lg m-4 text-center items-center flex flex-col space-y-4">
           <img src={user.photoURL} className="rounded-full" />
-          <h2 className="text-2xl font-bold">{profile.name}</h2>
+          <h2 className="text-2xl font-bold">{profile.firstName} {profile.lastName}</h2>
         </div>
         {alive ? (
           <div className="m-4 flex-col space-y-4">
@@ -97,7 +96,7 @@ export default function Profile({ loaderData }: Route.ComponentProps) {
         {alive ? (
           <div className="bg-slate-800 p-4 rounded-lg m-4 text-center items-center flex flex-col">
             <h2 className="text-xl font-semibold">Target</h2>
-            <h1 className="text-2xl font-bold">{profile.target.name}</h1>
+            <h1 className="text-2xl font-bold">{profile.target.firstName} {profile.target.lastName}</h1>
             <p className="italic font-light text-slate-300">
               {profile.target.email}
             </p>

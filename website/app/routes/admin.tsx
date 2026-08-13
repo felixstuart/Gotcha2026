@@ -4,7 +4,7 @@ import { app, auth, functions } from "../../firebase";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { redirect } from "react-router"; 
-import type { ClientProfile } from "../../../types";
+import type { Profile } from "../../../types";
 
 export async function clientLoader() {
     const user = await new Promise((resolve) => {
@@ -20,8 +20,10 @@ export async function clientLoader() {
 
     const getProfile = httpsCallable(functions, "getProfile");
     const profileResult = (await getProfile({})).data; // always pass an object
-
-    // TODO: check the user is an admin here based on the role of the profileResult
+    
+    if (profileResult && (profileResult as Profile).role != "admin") {
+        return redirect("/");
+    }
 
     return {
         profile: profileResult,
@@ -31,7 +33,7 @@ export async function clientLoader() {
 
 export default function AdminPanel({ loaderData }: Route.ComponentProps) {
     const { profile, user } = loaderData as unknown as {
-        profile: ClientProfile,
+        profile: Profile,
         user: any;
     };
 
@@ -44,7 +46,7 @@ export default function AdminPanel({ loaderData }: Route.ComponentProps) {
         <>
             <div className="p-6">
                 <div className="text-lg pb-4">
-                    Salutations, { profile.name.split(" ")[0] }. The Gotcha admin panel is at your service.
+                    Salutations, { profile.firstName } { profile.lastName }. The Gotcha admin panel is at your service.
                 </div>
                 
                 <input 

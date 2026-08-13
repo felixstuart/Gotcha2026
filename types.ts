@@ -2,6 +2,7 @@
 
 export interface Profile {
   alive: boolean;
+  role: Role;
   chaser: string;
   class: string;
   dayorboard: string;
@@ -17,17 +18,7 @@ export interface Profile {
   location?: string;
 }
 
-export interface ClientProfile {
-  name: string;
-  target: {
-    name: string;
-    email: string;
-    location?: string;
-  }
-  alive: boolean;
-  tags: number;
-  location?: string;
-}
+export type Role = "admin" | "player" | "observer"
 
 export interface ClientTaggedOutResponse {
   status: number;
