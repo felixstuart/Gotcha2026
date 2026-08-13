@@ -54,8 +54,9 @@ export default function Leaderboard({ loaderData }: Route.ComponentProps) {
   }, [endDate]);
 
   return (
-    <div className="flex flex-1 p-8 items-center">
+    <div className="flex flex-col sm:flex-col md:flex-row flex-1 p-8 items-center">
       <div className="space-y-2">
+        <h1 className="font-bold text-xl">Leaderboard</h1>
         {
           leaderboard &&
           leaderboard.topTaggers && 
