@@ -1,10 +1,10 @@
-import { LeaderboardCard } from "components/LeaderboardCard";
+import { LeaderboardCard } from "../../components/LeaderboardCard";
 import type { Route } from "../+types/root";
 import { remoteConfig } from "../../firebase";
 import { fetchAndActivate, getValue } from "firebase/remote-config";
 import React from "react";
 import { httpsCallable } from "firebase/functions";
-import { functions } from "firebase";
+import { functions } from "../../firebase";
 import type { Leaderboard } from "../../../types";
 
 export async function clientLoader() {
@@ -56,14 +56,18 @@ export default function Leaderboard({ loaderData }: Route.ComponentProps) {
   return (
     <div className="flex flex-1 p-8 items-center">
       <div className="space-y-2">
-        {leaderboard.topTaggers.map(({ name , tags }: { name: string; tags: number }, index: number) => (
-          <LeaderboardCard
-            name={name}
-            tags={tags}
-            position={index + 1}
-            key={index}
-          />
-        ))}
+        {
+          leaderboard &&
+          leaderboard.topTaggers && 
+          leaderboard.topTaggers.map(({ name , tags }: { name: string; tags: number }, index: number) => (
+            <LeaderboardCard
+              name={name}
+              tags={tags}
+              position={index + 1}
+              key={index}
+            />
+          ))
+        }
       </div>
 
       <div className="flex flex-1 flex-col items-center justify-start p-4 rounded-xl space-y-8">
@@ -76,7 +80,7 @@ export default function Leaderboard({ loaderData }: Route.ComponentProps) {
               Classes
             </h1>
             <div className="space-y-2">
-              {leaderboard.byClass.map((classEntry: { class: string; tags: number }) => (
+              {leaderboard && leaderboard.byClass.map((classEntry: { class: string; tags: number }) => (
                 <div
                   key={classEntry.class}
                   className="flex justify-between p-3 bg-slate-700 rounded-lg"
@@ -92,7 +96,7 @@ export default function Leaderboard({ loaderData }: Route.ComponentProps) {
               Dorms
             </h1>
             <div className="space-y-2">
-              {leaderboard.byDorms.map((dormEntry: { dorm: string; tags: number }) => (
+              {leaderboard && leaderboard.byDorms.map((dormEntry: { dorm: string; tags: number }) => (
                 <div
                   key={dormEntry.dorm}
                   className="flex justify-between p-3 bg-slate-700 rounded-lg"

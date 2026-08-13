@@ -1,11 +1,10 @@
 import { setGlobalOptions } from "firebase-functions/v2";
-import { HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
-import * as logger from "firebase-functions/logger";
+import { HttpsError, onCall } from "firebase-functions/v2/https";
+// import * as logger from "firebase-functions/logger";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { Profile, LastWordsEntry, Leaderboard } from "../../types";
 import {
-  onDocumentCreated,
   onDocumentCreatedWithAuthContext,
 } from "firebase-functions/firestore";
 
@@ -42,8 +41,10 @@ export const getProfile = onCall(async (request) => {
       throw new HttpsError("permission-denied", "Invalid email");
     }
 
+    // Milton Academy student email format is [first name]_[last_name][last two digits of graduation year]@milton.edu
     const [firstName, lastName] = email
       .split("@")[0]
+      .slice(0, -2)
       .split("_")
       .map((s) => s.charAt(0).toUpperCase() + s.slice(1));
 

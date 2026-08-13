@@ -1,9 +1,9 @@
 "use client";
-import { app, auth, functions } from "firebase";
+import { app, auth, functions } from "../../firebase";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { redirect, useNavigate } from "react-router";
-import GotchaLoader from "components/GotchaHand";
+import GotchaLoader from "../../components/GotchaHand";
 import type { Route } from "../+types/root";
 import type {
   ClientLastWordsResponse,
@@ -11,7 +11,7 @@ import type {
   ClientTaggedOutResponse,
   LastWordsEntry,
 } from "../../../types";
-import { TagOut } from "components/TagOut";
+import { TagOut } from "../../components/TagOut";
 import React from "react";
 
 export async function clientLoader() {

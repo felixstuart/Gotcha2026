@@ -1,13 +1,13 @@
 import type { Route } from "./+types/home";
-import { FuzzyText } from "components/GotchaHero";
-import GoogleLogo from "assets/google-logo.png";
+import { FuzzyText } from "../../components/GotchaHero";
+import GoogleLogo from "../../assets/google-logo.png";
 import { useNavigate } from "react-router";
 import {
   browserLocalPersistence,
   setPersistence,
   signInWithPopup,
 } from "firebase/auth";
-import { auth } from "firebase";
+import { auth } from "../../firebase";
 import { GoogleAuthProvider } from "firebase/auth";
 
 export function meta({}: Route.MetaArgs) {
@@ -29,7 +29,7 @@ export default function Home() {
         console.error("Error setting persistence:", err);
       });
     try {
-      const res = await signInWithPopup(auth, new GoogleAuthProvider());
+      await signInWithPopup(auth, new GoogleAuthProvider());
       navigate("/app/profile");
     } catch (error) {
       console.log(error);
