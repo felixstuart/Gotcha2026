@@ -10,13 +10,6 @@ import {
 import { auth } from "../../firebase";
 import { GoogleAuthProvider } from "firebase/auth";
 
-export function meta({}: Route.MetaArgs) {
-  return [
-    { title: "New React Router App" },
-    { name: "description", content: "Welcome to React Router!" },
-  ];
-}
-
 export default function Home() {
   const navigate = useNavigate();
 

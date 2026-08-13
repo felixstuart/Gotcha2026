@@ -72,3 +72,9 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
     </main>
   );
 }
+
+export function meta({}: Route.MetaArgs) {
+  return [
+    { title: "Gotcha" },
+  ];
+}
