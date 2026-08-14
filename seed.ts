@@ -23,7 +23,7 @@ async function seedProfiles() {
       class: "junior",
       dayorboard: "day",
       tags: 0,
-      chaser: "jordan_lee@milton.edu",
+      chaser: "aarav_agrawal27@milton.edu",
       target: {
         firstName: "Alex",
         lastName: "Chen",

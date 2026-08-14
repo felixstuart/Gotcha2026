@@ -67,64 +67,77 @@ export default function Profile({ loaderData }: Route.ComponentProps) {
     }
   };
 
-  return (
-    <>
-      <div className="p-4">
-        {/* set of cards */}
-        <h1 className="font-bold text-xl">Profile</h1>
-        {/* name and profile image card */}
-        <div className="bg-slate-800 p-4 rounded-lg m-4 text-center items-center flex flex-col space-y-4">
-          <img src={user.photoURL} className="rounded-full" />
-          <h2 className="text-2xl font-bold">{profile.firstName} {profile.lastName}</h2>
-        </div>
-        {alive ? (
-          <div className="m-4 flex-col space-y-4">
-            <div className="bg-slate-800 p-4 rounded-lg text-center items-center flex flex-col flex-1">
+  if (profile.role != "admin") {
+    return (
+      <>
+        <div className="p-4">
+          {/* set of cards */}
+          <h1 className="font-bold text-xl">Profile</h1>
+          {/* name and profile image card */}
+          <div className="bg-slate-800 p-4 rounded-lg m-4 text-center items-center flex flex-col space-y-4">
+            <img src={user.photoURL} className="rounded-full" />
+            <h2 className="text-2xl font-bold">{profile.firstName} {profile.lastName}</h2>
+          </div>
+          {alive ? (
+            <div className="m-4 flex-col space-y-4">
+              <div className="bg-slate-800 p-4 rounded-lg text-center items-center flex flex-col flex-1">
+                {/* tag counter */}
+                <h2 className="text-xl font-semibold">Tags</h2>
+                <h1 className="text-2xl font-bold">{profile.tags}</h1>
+              </div>
+              <TagOut text="Tag Out" onConfirm={tagOut} />
+            </div>
+          ) : (
+            <div className="bg-slate-800 p-4 rounded-lg m-4 text-center items-center flex flex-col flex-1">
               {/* tag counter */}
               <h2 className="text-xl font-semibold">Tags</h2>
               <h1 className="text-2xl font-bold">{profile.tags}</h1>
             </div>
-            <TagOut text="Tag Out" onConfirm={tagOut} />
-          </div>
-        ) : (
-          <div className="bg-slate-800 p-4 rounded-lg m-4 text-center items-center flex flex-col flex-1">
-            {/* tag counter */}
-            <h2 className="text-xl font-semibold">Tags</h2>
-            <h1 className="text-2xl font-bold">{profile.tags}</h1>
-          </div>
-        )}
-        {alive ? (
-          <div className="bg-slate-800 p-4 rounded-lg m-4 text-center items-center flex flex-col">
-            <h2 className="text-xl font-semibold">Target</h2>
-            <h1 className="text-2xl font-bold">{profile.target.firstName} {profile.target.lastName}</h1>
-            <p className="italic font-light text-slate-300">
-              {profile.target.email}
-            </p>
-          </div>
-        ) : null}
-      </div>
-      <div className="p-4">
-        <h1 className="font-bold text-xl">Last Words</h1>
-        <div>
-          {lastWords.lastWords.map((lw: LastWordsEntry) => (
-            <div key={lw.timestamp} className="bg-slate-800 p-4 rounded-lg m-4">
-              <p className="italic text-white">"{lw.lw}"</p>
-              <p className="text-sm text-slate-300">
-                - {lw.author} at{" "}
-                {new Date(lw.timestamp).toLocaleString(undefined, {
-                  year: "numeric",
-                  month: "numeric",
-                  day: "numeric",
-                  hour: "numeric",
-                  minute: "2-digit",
-                })}
+          )}
+          {alive ? (
+            <div className="bg-slate-800 p-4 rounded-lg m-4 text-center items-center flex flex-col">
+              <h2 className="text-xl font-semibold">Target</h2>
+              <h1 className="text-2xl font-bold">{profile.target.firstName} {profile.target.lastName}</h1>
+              <p className="italic font-light text-slate-300">
+                {profile.target.email}
               </p>
             </div>
-          ))}
+          ) : null}
         </div>
-      </div>
-    </>
-  );
+        <div className="p-4">
+          <h1 className="font-bold text-xl">Last Words</h1>
+          <div>
+            {lastWords.lastWords.map((lw: LastWordsEntry) => (
+              <div key={lw.timestamp} className="bg-slate-800 p-4 rounded-lg m-4">
+                <p className="italic text-white">"{lw.lw}"</p>
+                <p className="text-sm text-slate-300">
+                  - {lw.author} at{" "}
+                  {new Date(lw.timestamp).toLocaleString(undefined, {
+                    year: "numeric",
+                    month: "numeric",
+                    day: "numeric",
+                    hour: "numeric",
+                    minute: "2-digit",
+                  })}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </>
+    );
+  } else {
+    
+    return (
+      <>
+        <h1
+          className="text-white p-6"
+        >
+          You're an admin. Why are you playing? Go to the /app/admin page.
+        </h1>
+      </>
+    )
+  }
 }
 
 export function ErrorBoundary({ error }: { error: Error }) {

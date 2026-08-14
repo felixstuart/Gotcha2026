@@ -11,8 +11,26 @@ export const getProfile = onCall(async (request) => {
     throw new HttpsError("unauthenticated", "User must be authenticated");
   }
 
-  const email = request.auth.token.email;
+  let email;
+  let isAdmin = false;
   const db = getFirestore();
+
+  if (!request.data.email) {
+    email = request.auth.token.email;
+  } else { 
+    // Make sure the requester is an admin
+    // if they are requesting someone else's info
+    isAdmin = true;
+    const requesterProfileDoc = await db.collection("data").doc(request.auth.token.email).get(); // emails used as document id
+    const requesterProfile = requesterProfileDoc.data() as Profile | undefined;
+    const requesterRole = requesterProfile?.role;
+
+    if (requesterRole != "admin") {
+      throw new HttpsError("permission-denied", "User must be admin the access other user's data");
+    }
+
+    email = request.data.email;
+  }
 
   try {
     // Check if the user already has a profile
@@ -30,11 +48,15 @@ export const getProfile = onCall(async (request) => {
 
     // Create a new profile if the user doesn't have one
     // Milton Academy student email format is [first name]_[last_name][last two digits of graduation year]@milton.edu
+    if (isAdmin) {
+      return null;
+    }
+    
     const [firstName, lastName] = email
       .split("@")[0]
       .slice(0, -2)
       .split("_")
-      .map((s) => s.charAt(0).toUpperCase() + s.slice(1));
+      .map((s: string) => s.charAt(0).toUpperCase() + s.slice(1));
 
     const newProfile: Profile = {
       alive: false,

@@ -1,7 +1,7 @@
 import { jsx, jsxs, Fragment } from "react/jsx-runtime";
 import { PassThrough } from "node:stream";
 import { createReadableStreamFromReadable } from "@react-router/node";
-import { ServerRouter, UNSAFE_withComponentProps, Outlet, UNSAFE_withErrorBoundaryProps, isRouteErrorResponse, Meta, Links, ScrollRestoration, Scripts, useNavigate, NavLink, UNSAFE_withHydrateFallbackProps, redirect, useLocation } from "react-router";
+import { ServerRouter, UNSAFE_withComponentProps, Outlet, UNSAFE_withErrorBoundaryProps, isRouteErrorResponse, Meta, Links, ScrollRestoration, Scripts, useNavigate, NavLink, UNSAFE_withHydrateFallbackProps, redirect, useLocation, useSearchParams, Form } from "react-router";
 import { isbot } from "isbot";
 import { renderToPipeableStream } from "react-dom/server";
 import React, { useRef, useEffect, useState } from "react";
@@ -547,7 +547,7 @@ const TagOut = ({
         /* @__PURE__ */ jsx(
           motion.div,
           {
-            className: "bg-rose-600 absolute top-0 bottom-0 left-0 right-[100%] pointer-events-none",
+            className: "bg-rose-600 absolute top-0 bottom-0 left-0 right-full pointer-events-none",
             style: {
               right: fillRightOffset
             }
@@ -608,25 +608,39 @@ const profile = UNSAFE_withComponentProps(function Profile({
       throw err;
     }
   };
-  return /* @__PURE__ */ jsxs(Fragment, {
-    children: [/* @__PURE__ */ jsxs("div", {
-      className: "p-4",
-      children: [/* @__PURE__ */ jsx("h1", {
-        className: "font-bold text-xl",
-        children: "Profile"
-      }), /* @__PURE__ */ jsxs("div", {
-        className: "bg-slate-800 p-4 rounded-lg m-4 text-center items-center flex flex-col space-y-4",
-        children: [/* @__PURE__ */ jsx("img", {
-          src: user.photoURL,
-          className: "rounded-full"
-        }), /* @__PURE__ */ jsxs("h2", {
-          className: "text-2xl font-bold",
-          children: [profile2.firstName, " ", profile2.lastName]
-        })]
-      }), alive ? /* @__PURE__ */ jsxs("div", {
-        className: "m-4 flex-col space-y-4",
-        children: [/* @__PURE__ */ jsxs("div", {
-          className: "bg-slate-800 p-4 rounded-lg text-center items-center flex flex-col flex-1",
+  if (profile2.role != "admin") {
+    return /* @__PURE__ */ jsxs(Fragment, {
+      children: [/* @__PURE__ */ jsxs("div", {
+        className: "p-4",
+        children: [/* @__PURE__ */ jsx("h1", {
+          className: "font-bold text-xl",
+          children: "Profile"
+        }), /* @__PURE__ */ jsxs("div", {
+          className: "bg-slate-800 p-4 rounded-lg m-4 text-center items-center flex flex-col space-y-4",
+          children: [/* @__PURE__ */ jsx("img", {
+            src: user.photoURL,
+            className: "rounded-full"
+          }), /* @__PURE__ */ jsxs("h2", {
+            className: "text-2xl font-bold",
+            children: [profile2.firstName, " ", profile2.lastName]
+          })]
+        }), alive ? /* @__PURE__ */ jsxs("div", {
+          className: "m-4 flex-col space-y-4",
+          children: [/* @__PURE__ */ jsxs("div", {
+            className: "bg-slate-800 p-4 rounded-lg text-center items-center flex flex-col flex-1",
+            children: [/* @__PURE__ */ jsx("h2", {
+              className: "text-xl font-semibold",
+              children: "Tags"
+            }), /* @__PURE__ */ jsx("h1", {
+              className: "text-2xl font-bold",
+              children: profile2.tags
+            })]
+          }), /* @__PURE__ */ jsx(TagOut, {
+            text: "Tag Out",
+            onConfirm: tagOut
+          })]
+        }) : /* @__PURE__ */ jsxs("div", {
+          className: "bg-slate-800 p-4 rounded-lg m-4 text-center items-center flex flex-col flex-1",
           children: [/* @__PURE__ */ jsx("h2", {
             className: "text-xl font-semibold",
             children: "Tags"
@@ -634,57 +648,52 @@ const profile = UNSAFE_withComponentProps(function Profile({
             className: "text-2xl font-bold",
             children: profile2.tags
           })]
-        }), /* @__PURE__ */ jsx(TagOut, {
-          text: "Tag Out",
-          onConfirm: tagOut
-        })]
-      }) : /* @__PURE__ */ jsxs("div", {
-        className: "bg-slate-800 p-4 rounded-lg m-4 text-center items-center flex flex-col flex-1",
-        children: [/* @__PURE__ */ jsx("h2", {
-          className: "text-xl font-semibold",
-          children: "Tags"
-        }), /* @__PURE__ */ jsx("h1", {
-          className: "text-2xl font-bold",
-          children: profile2.tags
-        })]
-      }), alive ? /* @__PURE__ */ jsxs("div", {
-        className: "bg-slate-800 p-4 rounded-lg m-4 text-center items-center flex flex-col",
-        children: [/* @__PURE__ */ jsx("h2", {
-          className: "text-xl font-semibold",
-          children: "Target"
-        }), /* @__PURE__ */ jsxs("h1", {
-          className: "text-2xl font-bold",
-          children: [profile2.target.firstName, " ", profile2.target.lastName]
-        }), /* @__PURE__ */ jsx("p", {
-          className: "italic font-light text-slate-300",
-          children: profile2.target.email
-        })]
-      }) : null]
-    }), /* @__PURE__ */ jsxs("div", {
-      className: "p-4",
-      children: [/* @__PURE__ */ jsx("h1", {
-        className: "font-bold text-xl",
-        children: "Last Words"
-      }), /* @__PURE__ */ jsx("div", {
-        children: lastWords2.lastWords.map((lw) => /* @__PURE__ */ jsxs("div", {
-          className: "bg-slate-800 p-4 rounded-lg m-4",
-          children: [/* @__PURE__ */ jsxs("p", {
-            className: "italic text-white",
-            children: ['"', lw.lw, '"']
-          }), /* @__PURE__ */ jsxs("p", {
-            className: "text-sm text-slate-300",
-            children: ["- ", lw.author, " at", " ", new Date(lw.timestamp).toLocaleString(void 0, {
-              year: "numeric",
-              month: "numeric",
-              day: "numeric",
-              hour: "numeric",
-              minute: "2-digit"
-            })]
+        }), alive ? /* @__PURE__ */ jsxs("div", {
+          className: "bg-slate-800 p-4 rounded-lg m-4 text-center items-center flex flex-col",
+          children: [/* @__PURE__ */ jsx("h2", {
+            className: "text-xl font-semibold",
+            children: "Target"
+          }), /* @__PURE__ */ jsxs("h1", {
+            className: "text-2xl font-bold",
+            children: [profile2.target.firstName, " ", profile2.target.lastName]
+          }), /* @__PURE__ */ jsx("p", {
+            className: "italic font-light text-slate-300",
+            children: profile2.target.email
           })]
-        }, lw.timestamp))
+        }) : null]
+      }), /* @__PURE__ */ jsxs("div", {
+        className: "p-4",
+        children: [/* @__PURE__ */ jsx("h1", {
+          className: "font-bold text-xl",
+          children: "Last Words"
+        }), /* @__PURE__ */ jsx("div", {
+          children: lastWords2.lastWords.map((lw) => /* @__PURE__ */ jsxs("div", {
+            className: "bg-slate-800 p-4 rounded-lg m-4",
+            children: [/* @__PURE__ */ jsxs("p", {
+              className: "italic text-white",
+              children: ['"', lw.lw, '"']
+            }), /* @__PURE__ */ jsxs("p", {
+              className: "text-sm text-slate-300",
+              children: ["- ", lw.author, " at", " ", new Date(lw.timestamp).toLocaleString(void 0, {
+                year: "numeric",
+                month: "numeric",
+                day: "numeric",
+                hour: "numeric",
+                minute: "2-digit"
+              })]
+            })]
+          }, lw.timestamp))
+        })]
       })]
-    })]
-  });
+    });
+  } else {
+    return /* @__PURE__ */ jsx(Fragment, {
+      children: /* @__PURE__ */ jsx("h1", {
+        className: "text-white p-6",
+        children: "You're an admin. Why are you playing? Go to the /app/admin page."
+      })
+    });
+  }
 });
 const ErrorBoundary = UNSAFE_withErrorBoundaryProps(function ErrorBoundary3({
   error
@@ -1162,7 +1171,9 @@ const route5 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProper
   __proto__: null,
   default: lastWords
 }, Symbol.toStringTag, { value: "Module" }));
-async function clientLoader() {
+async function clientLoader({
+  request
+}) {
   const user = await new Promise((resolve) => {
     const unsubscribe = onAuthStateChanged(auth, (user2) => {
       unsubscribe();
@@ -1173,34 +1184,119 @@ async function clientLoader() {
     return redirect("/");
   }
   const getProfile = httpsCallable(functions, "getProfile");
-  const profileResult = (await getProfile({})).data;
-  console.log(profileResult);
+  const adminProfileResult = (await getProfile({})).data;
+  if (adminProfileResult && adminProfileResult.role != "admin") {
+    return redirect("/profile");
+  }
+  const url = new URL(request.url);
+  const email = url.searchParams.get("q");
+  let searchProfileResult;
+  if (email) {
+    searchProfileResult = (await getProfile({
+      email
+    })).data;
+    console.log("Search profile result:", searchProfileResult);
+  }
   return {
-    profile: profileResult,
-    user
+    adminProfile: adminProfileResult,
+    searchProfile: searchProfileResult
   };
 }
 const admin = UNSAFE_withComponentProps(function AdminPanel({
   loaderData
 }) {
+  const [searchParams] = useSearchParams();
   const {
-    profile: profile2,
-    user
+    adminProfile,
+    searchProfile
   } = loaderData;
-  console.log(profile2);
-  console.log(user);
-  const [searchText, setSearchText] = useState("");
+  console.log(searchProfile);
+  const tagOut = async () => {
+    try {
+      const email = searchParams.get("q");
+      const tagOut2 = httpsCallable(functions, "tagOut");
+      const tagOutResult = await tagOut2({
+        email
+      });
+      const data = tagOutResult.data;
+      if (data.status !== 200) {
+        throw new Error("Failed to tag out");
+      }
+    } catch (err) {
+      console.error("tagOut error:", err);
+      throw err;
+    }
+  };
   return /* @__PURE__ */ jsx(Fragment, {
     children: /* @__PURE__ */ jsxs("div", {
       className: "p-6",
       children: [/* @__PURE__ */ jsxs("div", {
         className: "text-lg pb-4",
-        children: ["Salutations, ", profile2.firstName, " ", profile2.lastName, ". The Gotcha admin panel is at your service."]
-      }), /* @__PURE__ */ jsx("input", {
-        value: searchText,
-        onChange: (event) => setSearchText(event.target.value),
-        placeholder: "Search players by name or email...",
-        className: "border-2 rounded-sm p-2 w-full"
+        children: ["Salutations, ", adminProfile.firstName, " ", adminProfile.lastName, ". The Gotcha admin panel is at your service."]
+      }), /* @__PURE__ */ jsxs(Form, {
+        method: "get",
+        className: "flex gap-4",
+        children: [/* @__PURE__ */ jsx("input", {
+          name: "q",
+          defaultValue: "@milton.edu",
+          type: "email",
+          placeholder: "Find player by email...",
+          className: "border-2 rounded-sm p-2 w-full"
+        }), /* @__PURE__ */ jsx("button", {
+          type: "submit",
+          className: "bg-slate-100 text-white py-2 px-4 rounded-sm",
+          children: "Submit"
+        })]
+      }), searchProfile ? /* @__PURE__ */ jsxs(Fragment, {
+        children: [/* @__PURE__ */ jsx("h1", {
+          className: "mt-8 font-bold text-xl",
+          children: "Profile"
+        }), /* @__PURE__ */ jsx("div", {
+          className: "bg-slate-100 p-4 rounded-lg m-4 text-center items-center flex flex-col space-y-4",
+          children: /* @__PURE__ */ jsxs("h2", {
+            className: "text-2xl font-bold",
+            children: [searchProfile.firstName, " ", searchProfile.lastName]
+          })
+        }), searchProfile.alive ? /* @__PURE__ */ jsxs("div", {
+          className: "m-4 flex flex-row gap-5",
+          children: [/* @__PURE__ */ jsxs("div", {
+            className: "bg-slate-100 px-10 py-8 rounded-lg text-center items-center flex flex-col flex-1",
+            children: [/* @__PURE__ */ jsx("h2", {
+              className: "text-xl font-semibold",
+              children: "Tags"
+            }), /* @__PURE__ */ jsx("h1", {
+              className: "text-2xl font-bold",
+              children: searchProfile.tags
+            })]
+          }), /* @__PURE__ */ jsx(TagOut, {
+            text: "Tag Out",
+            onConfirm: tagOut
+          })]
+        }) : /* @__PURE__ */ jsxs("div", {
+          className: "bg-slate-100 p-4 rounded-lg text-center items-center flex flex-col flex-1",
+          children: [/* @__PURE__ */ jsx("h2", {
+            className: "text-xl font-semibold",
+            children: "Tags"
+          }), /* @__PURE__ */ jsx("h1", {
+            className: "text-2xl font-bold",
+            children: searchProfile.tags
+          }), "(Player tagged out)"]
+        }), searchProfile.alive ? /* @__PURE__ */ jsxs("div", {
+          className: "bg-slate-100 p-4 rounded-lg m-4 text-center items-center flex flex-col",
+          children: [/* @__PURE__ */ jsx("h2", {
+            className: "text-xl font-semibold",
+            children: "Target"
+          }), /* @__PURE__ */ jsxs("h1", {
+            className: "text-2xl font-bold",
+            children: [searchProfile.target.firstName, " ", searchProfile.target.lastName]
+          }), /* @__PURE__ */ jsx("p", {
+            className: "italic font-light text-slate-800",
+            children: searchProfile.target.email
+          })]
+        }) : null]
+      }) : /* @__PURE__ */ jsx("div", {
+        className: "mt-5",
+        children: "No user found with that email."
       })]
     })
   });
@@ -1210,7 +1306,7 @@ const route6 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProper
   clientLoader,
   default: admin
 }, Symbol.toStringTag, { value: "Module" }));
-const serverManifest = { "entry": { "module": "/assets/entry.client-BUR5AqMv.js", "imports": ["/assets/jsx-runtime-jioiABin.js"], "css": [] }, "routes": { "root": { "id": "root", "parentId": void 0, "path": "", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasClientMiddleware": false, "hasErrorBoundary": true, "module": "/assets/root-D_dYqQID.js", "imports": ["/assets/jsx-runtime-jioiABin.js"], "css": ["/assets/root-Cb12WqZP.css"], "clientActionModule": void 0, "clientLoaderModule": void 0, "clientMiddlewareModule": void 0, "hydrateFallbackModule": void 0 }, "routes/home": { "id": "routes/home", "parentId": "root", "path": void 0, "index": true, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasClientMiddleware": false, "hasErrorBoundary": false, "module": "/assets/home-C9rRrOj2.js", "imports": ["/assets/jsx-runtime-jioiABin.js", "/assets/firebase-DgHvPz6v.js"], "css": [], "clientActionModule": void 0, "clientLoaderModule": void 0, "clientMiddlewareModule": void 0, "hydrateFallbackModule": void 0 }, "../components/Layout": { "id": "../components/Layout", "parentId": "root", "path": void 0, "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasClientMiddleware": false, "hasErrorBoundary": false, "module": "/assets/Layout-CYY9l6Xg.js", "imports": ["/assets/jsx-runtime-jioiABin.js"], "css": [], "clientActionModule": void 0, "clientLoaderModule": void 0, "clientMiddlewareModule": void 0, "hydrateFallbackModule": void 0 }, "routes/profile": { "id": "routes/profile", "parentId": "../components/Layout", "path": "app/profile", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": true, "hasClientMiddleware": false, "hasErrorBoundary": true, "module": "/assets/profile-B61pbri9.js", "imports": ["/assets/jsx-runtime-jioiABin.js", "/assets/firebase-DgHvPz6v.js", "/assets/proxy-DrPk0-nW.js"], "css": [], "clientActionModule": void 0, "clientLoaderModule": void 0, "clientMiddlewareModule": void 0, "hydrateFallbackModule": void 0 }, "routes/leaderboard": { "id": "routes/leaderboard", "parentId": "../components/Layout", "path": "app/leaderboard", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": true, "hasClientMiddleware": false, "hasErrorBoundary": false, "module": "/assets/leaderboard-BdLbOmig.js", "imports": ["/assets/jsx-runtime-jioiABin.js", "/assets/firebase-DgHvPz6v.js"], "css": [], "clientActionModule": void 0, "clientLoaderModule": void 0, "clientMiddlewareModule": void 0, "hydrateFallbackModule": void 0 }, "routes/last-words": { "id": "routes/last-words", "parentId": "root", "path": "app/last-words", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasClientMiddleware": false, "hasErrorBoundary": false, "module": "/assets/last-words-es_xlYs7.js", "imports": ["/assets/jsx-runtime-jioiABin.js", "/assets/firebase-DgHvPz6v.js", "/assets/proxy-DrPk0-nW.js"], "css": [], "clientActionModule": void 0, "clientLoaderModule": void 0, "clientMiddlewareModule": void 0, "hydrateFallbackModule": void 0 }, "routes/admin": { "id": "routes/admin", "parentId": "root", "path": "app/admin", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": true, "hasClientMiddleware": false, "hasErrorBoundary": false, "module": "/assets/admin-BL4a4s-R.js", "imports": ["/assets/jsx-runtime-jioiABin.js", "/assets/firebase-DgHvPz6v.js"], "css": [], "clientActionModule": void 0, "clientLoaderModule": void 0, "clientMiddlewareModule": void 0, "hydrateFallbackModule": void 0 } }, "url": "/assets/manifest-0d6050ad.js", "version": "0d6050ad", "sri": void 0 };
+const serverManifest = { "entry": { "module": "/assets/entry.client-8NP_SS9H.js", "imports": ["/assets/jsx-runtime-B6HBrsFs.js"], "css": [] }, "routes": { "root": { "id": "root", "parentId": void 0, "path": "", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasClientMiddleware": false, "hasErrorBoundary": true, "module": "/assets/root-8-C1xJRo.js", "imports": ["/assets/jsx-runtime-B6HBrsFs.js"], "css": ["/assets/root-D24D9raj.css"], "clientActionModule": void 0, "clientLoaderModule": void 0, "clientMiddlewareModule": void 0, "hydrateFallbackModule": void 0 }, "routes/home": { "id": "routes/home", "parentId": "root", "path": void 0, "index": true, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasClientMiddleware": false, "hasErrorBoundary": false, "module": "/assets/home-HZ57BnlO.js", "imports": ["/assets/jsx-runtime-B6HBrsFs.js", "/assets/firebase-DgHvPz6v.js"], "css": [], "clientActionModule": void 0, "clientLoaderModule": void 0, "clientMiddlewareModule": void 0, "hydrateFallbackModule": void 0 }, "../components/Layout": { "id": "../components/Layout", "parentId": "root", "path": void 0, "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasClientMiddleware": false, "hasErrorBoundary": false, "module": "/assets/Layout-CyricUYK.js", "imports": ["/assets/jsx-runtime-B6HBrsFs.js"], "css": [], "clientActionModule": void 0, "clientLoaderModule": void 0, "clientMiddlewareModule": void 0, "hydrateFallbackModule": void 0 }, "routes/profile": { "id": "routes/profile", "parentId": "../components/Layout", "path": "app/profile", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": true, "hasClientMiddleware": false, "hasErrorBoundary": true, "module": "/assets/profile-B9Y5P2MN.js", "imports": ["/assets/jsx-runtime-B6HBrsFs.js", "/assets/firebase-DgHvPz6v.js", "/assets/proxy-DIyQZVBf.js", "/assets/TagOut-CFn9r4sB.js"], "css": [], "clientActionModule": void 0, "clientLoaderModule": void 0, "clientMiddlewareModule": void 0, "hydrateFallbackModule": void 0 }, "routes/leaderboard": { "id": "routes/leaderboard", "parentId": "../components/Layout", "path": "app/leaderboard", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": true, "hasClientMiddleware": false, "hasErrorBoundary": false, "module": "/assets/leaderboard-Bun_AXmu.js", "imports": ["/assets/jsx-runtime-B6HBrsFs.js", "/assets/firebase-DgHvPz6v.js"], "css": [], "clientActionModule": void 0, "clientLoaderModule": void 0, "clientMiddlewareModule": void 0, "hydrateFallbackModule": void 0 }, "routes/last-words": { "id": "routes/last-words", "parentId": "root", "path": "app/last-words", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasClientMiddleware": false, "hasErrorBoundary": false, "module": "/assets/last-words-zRfcwrKe.js", "imports": ["/assets/jsx-runtime-B6HBrsFs.js", "/assets/firebase-DgHvPz6v.js", "/assets/proxy-DIyQZVBf.js"], "css": [], "clientActionModule": void 0, "clientLoaderModule": void 0, "clientMiddlewareModule": void 0, "hydrateFallbackModule": void 0 }, "routes/admin": { "id": "routes/admin", "parentId": "root", "path": "app/admin", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": true, "hasClientMiddleware": false, "hasErrorBoundary": false, "module": "/assets/admin-dZD1UEwy.js", "imports": ["/assets/jsx-runtime-B6HBrsFs.js", "/assets/firebase-DgHvPz6v.js", "/assets/TagOut-CFn9r4sB.js", "/assets/proxy-DIyQZVBf.js"], "css": [], "clientActionModule": void 0, "clientLoaderModule": void 0, "clientMiddlewareModule": void 0, "hydrateFallbackModule": void 0 } }, "url": "/assets/manifest-cdba062e.js", "version": "cdba062e", "sri": void 0 };
 const assetsBuildDirectory = "build/client";
 const basename = "/";
 const future = { "unstable_optimizeDeps": false, "unstable_subResourceIntegrity": false, "v8_middleware": false, "v8_splitRouteModules": false, "v8_viteEnvironmentApi": false };

@@ -158,7 +158,7 @@ export const TagOut = ({
         </motion.div>
       </AnimatePresence>
       <motion.div
-        className="bg-rose-600 absolute top-0 bottom-0 left-0 right-[100%] pointer-events-none"
+        className="bg-rose-600 absolute top-0 bottom-0 left-0 right-full pointer-events-none"
         style={{
           right: fillRightOffset,
         }}
