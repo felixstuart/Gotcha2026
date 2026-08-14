@@ -15,6 +15,7 @@
   },
   "main": "lib/functions/src/index.js",
   "dependencies": {
+    "@turf/boolean-point-in-polygon": "^7.4.0",
     "firebase-admin": "^12.6.0",
     "firebase-functions": "^7.3.2"
   },

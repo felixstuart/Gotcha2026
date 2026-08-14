@@ -15,6 +15,8 @@ export interface Profile {
     email: string;
     location?: string;
   }
+  // bear in mind that this location field will not be updated by the server. it's just a pull down from the getProfile function when the location is enabled
+  // DO NOT write any code that relies on it.
   location?: string;
 }
 

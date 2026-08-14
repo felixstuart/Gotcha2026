@@ -13,6 +13,7 @@ import type {
 } from "../../../types";
 import { TagOut } from "../../components/TagOut";
 import React from "react";
+import LocationService from "../../components/LocationService";
 
 export async function clientLoader() {
   const user = await new Promise((resolve) => {
@@ -26,13 +27,31 @@ export async function clientLoader() {
     return redirect("/");
   }
 
+  const location = await new Promise<GeolocationPosition | null>((resolve) => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve(position)
+        }, 
+        (error) => {
+          resolve(null)
+        }
+      )
+    } else {
+      alert("Location isn't supported by your browser. Certain features might be unavailable.")
+      resolve(null)
+    }
+  })
+  
   const getProfile = httpsCallable(functions, "getProfile");
 
-  const profileResult = await getProfile({}); // always pass an object
+  const profileResult = await getProfile({location: [location?.coords.latitude, location?.coords.longitude]}); // always pass an object
   const getLastWords = httpsCallable(functions, "getLastWords");
   const lastWordsResult = await getLastWords({});
+
   return {
-    profile: profileResult.data,
+    // @ts-ignore
+    profile: profileResult.data.profile,
     user: user,
     lastWords: lastWordsResult.data,
   };
@@ -40,14 +59,16 @@ export async function clientLoader() {
 
 export default function Profile({ loaderData }: Route.ComponentProps) {
   const { profile, user, lastWords } = loaderData as unknown as {
-    profile: Profile;
+    profile: any;
     user: any;
     lastWords: ClientLastWordsResponse;
   };
 
+  console.log(profile)
+
   const [alive, setAlive] = React.useState(profile.alive);
   const navigate = useNavigate();
-  console.log(lastWords);
+
   const tagOut = async () => {
     try {
       const tagOut = httpsCallable(functions, "tagOut");
@@ -77,6 +98,7 @@ export default function Profile({ loaderData }: Route.ComponentProps) {
           <div className="bg-slate-800 p-4 rounded-lg m-4 text-center items-center flex flex-col space-y-4">
             <img src={user.photoURL} className="rounded-full" />
             <h2 className="text-2xl font-bold">{profile.firstName} {profile.lastName}</h2>
+            <h2 className="italic font-light text-slate-300">{profile.location}</h2>
           </div>
           {alive ? (
             <div className="m-4 flex-col space-y-4">
