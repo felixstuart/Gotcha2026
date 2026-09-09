@@ -48,7 +48,7 @@ export const tagOut = onCall(async (request) => {
         firstName: target.firstName,
         lastName: target.lastName,
         email: targetEmail,
-        location: target.location,
+        ...(target.location !== undefined && { location: target.location }),
       };
 
       tx.update(chaserDoc.ref, {
@@ -72,7 +72,8 @@ export const tagOut = onCall(async (request) => {
     });
 
     return { status: 200 };
-  } catch {
+  } catch (error) {
+    console.error("Tag out transaction failed", error);
     throw new HttpsError("unknown", "Tag out failed");
   }
 });

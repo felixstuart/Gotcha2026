@@ -8,7 +8,8 @@ import { point, polygon, featureCollection } from "@turf/helpers";
  * Gets the user's profile and
  * creates a **player** (not admin) profile if the user hasn't joined the game yet
  */
-export async const getProfile = onCall(async (request) => {
+
+export const getProfile = onCall(async (request) => {
   if (!request.auth || !request.auth.token.email) {
     throw new HttpsError("unauthenticated", "User must be authenticated");
   }
@@ -63,7 +64,9 @@ export async const getProfile = onCall(async (request) => {
       ];
 
     const buildings = featureCollection(
-        rawBuildings.map((b) => polygon(b.coords, { name: b.name })),
+        rawBuildings
+          .filter((b) => b.coords.every((ring) => ring.length >= 4))
+          .map((b) => polygon(b.coords, { name: b.name })),
     );
 
     const building = buildings.features.find((building) => (
@@ -86,6 +89,8 @@ export async const getProfile = onCall(async (request) => {
     }
 
     console.log(profile)
+
+    }
 
     return { profile };
   } else {

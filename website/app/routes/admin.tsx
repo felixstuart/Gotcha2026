@@ -20,10 +20,13 @@ export async function clientLoader({ request }: Route.ClientLoaderArgs) {
     }
 
     const getProfile = httpsCallable(functions, "getProfile");
-    const adminProfileResult = (await getProfile({})).data; // always pass an object
+    const adminProfileResult = (await getProfile({})).data as {
+        profile: Profile;
+    };
+    const adminProfile = adminProfileResult.profile;
     
-    if (adminProfileResult && (adminProfileResult as Profile).role != "admin") {
-        return redirect("/profile");
+    if (adminProfile.role != "admin") {
+        return redirect("/app/profile");
     }
 
     // Get the searchedProfile based on the URL parameters
@@ -33,12 +36,15 @@ export async function clientLoader({ request }: Route.ClientLoaderArgs) {
     let searchProfileResult;
 
     if (email) {
-        searchProfileResult = (await getProfile({email: email})).data;
+        const result = (await getProfile({email: email})).data as {
+            profile: Profile;
+        } | null;
+        searchProfileResult = result?.profile;
         console.log("Search profile result:", searchProfileResult);
     }
 
     return {
-        adminProfile: adminProfileResult,
+        adminProfile,
         searchProfile: searchProfileResult,
     };
 }
