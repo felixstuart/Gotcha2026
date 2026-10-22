@@ -8,27 +8,25 @@ const db = getFirestore();
 
 type Location = [latitude: number, longitude: number];
 
-const rawBuildings = [
-  {
-      name: "Stuart Empire",
-      coords: [[],],
-  },
-]; 
-
-const buildings = featureCollection(
-    rawBuildings
-      .filter((rawBuilding) => rawBuilding.coords.every((ring) => ring.length >= 4))
-      .map((rawBuilding) => polygon(rawBuilding.coords, { name: rawBuilding.name })),
-);
-
-
 /**
  * Updates target.location for the chaser
  * @param profile
  * @param targetLocation 
- * @param targetEmail 
  */
-export const updateChaserTargetLocation = async (targetProfile: Profile, targetLocation: Location, targetEmail: string): Promise<void> => {
+export const updateChaserTargetLocation = async (targetProfile: Profile, targetLocation: Location): Promise<void> => {
+    const rawBuildings = [
+        {
+            name: "Stuart Empire",
+            coords: [[],],
+        },
+    ]; 
+
+    const buildings = featureCollection(
+        rawBuildings
+        .filter((rawBuilding) => rawBuilding.coords.every((ring) => ring.length >= 4))
+        .map((rawBuilding) => polygon(rawBuilding.coords, { name: rawBuilding.name })),
+    );
+
     const building = buildings.features.find((building) => (
         booleanPointInPolygon(
             point([targetLocation[1], targetLocation[0]]), 
@@ -52,119 +50,60 @@ export const updateChaserTargetLocation = async (targetProfile: Profile, targetL
 
 
 /**
- * Get a profile based on an email. Assumes you've already validated permissions
+ * Get a profile based on an email. Assumes you've already validated permissions. Outputs null if no profile found.
  * @param location 
  * @param email 
  * @returns 
  */
-export const getUserProfileByEmail = async (userLocation: Location, userEmail: string): Promise<Profile> => {
+export const getUserProfileByEmail = async (userLocation: Location, userEmail: string): Promise<Profile | null> => {
     const profileDocument = await db.collection("data").doc(userEmail).get(); // emails used as document id
     const profile = profileDocument.data() as Profile | undefined;
-    if (!profile) throw new Error("Profile not found");
+    if (!profile) return null;
 
     if (location != null) {
       // geofence here. i'm leaving my coordinates out in development, but i added some code to seed.ts to automatically inject a .geojson file
       // if you want to test it out, you'll need to generate your own .geojson file---i suggest geojson.io. we'll provide a milton one once gotcha gets closer
 
-        updateChaserTargetLocation(profile, userLocation, userEmail);
+        updateChaserTargetLocation(profile, userLocation);
     }
 
     return profile;
 }
 
-/**
- * Creates a profile based on user email
- * @param email 
- * @param isAdmin 
- * @returns 
- */
-export const createProfile = async (email: string): Promise<Profile | null> => {
-    if (!email.endsWith("@milton.edu")) {
-        throw new HttpsError("permission-denied", "Invalid email");
-    }
-
-    // Milton Academy student email format is [first name]_[last_name][last two digits of graduation year]@milton.edu
-    const [firstName, lastName] = email
-        .split("@")[0]
-        .slice(0, -2)
-        .split("_")
-        .map((s: string) => s.charAt(0).toUpperCase() + s.slice(1));
-
-    const newProfile: Profile = {
-        alive: false,
-        role: "player",
-        chaser: "none",
-        class: "observer",
-        dayorboard: "observer",
-        firstName,
-        lastName,
-        tags: 0,
-        target: {
-            firstName: "None",
-            lastName: "",
-            email: "",
-        },
-    };
-
-    await db.collection("data").doc(email).set(newProfile);
-
-    return newProfile;
-}
 
 /**
- * Firebase callable that gets the user's profile and
- * creates a **player** (not admin) profile if the user hasn't joined the game yet
- */
- 
+ * Firebase callable that returns the user's profile or
+ * returns null when they don't have a profile
+ */ 
 export const getProfile = onCall(async (request): Promise<Profile | null> => {
-  if (!request.auth || !request.auth.token.email) {
-      throw new HttpsError("unauthenticated", "User must be authenticated");
-  }
-
-  let email;
-  let isAdmin = false;
-
-  if (!request.data.email) {
-      email = request.auth.token.email;
-  } else {
-      // Make sure the requester is an admin
-      // if they are requesting someone else's info
-      isAdmin = true;
-      const requesterProfileDoc = await db
-          .collection("data")
-          .doc(request.auth.token.email)
-          .get(); // emails used as document id
-      const requesterProfile = requesterProfileDoc.data() as Profile | undefined;
-      const requesterRole = requesterProfile?.role;
-
-      if (requesterRole != "admin") {
-          throw new HttpsError(
-              "permission-denied",
-              "User must be admin the access other user's data",
-          );
-      }
-
-      email = request.data.email;
-  }
-
-  // Check if the user already has a profile
-  const profileDoc = await db.collection("data").doc(email).get(); // emails used as document id
-  const profile = profileDoc.data() as Profile | undefined;
-
-  if (profile != undefined) {
-      const location = request.data.location;
-      if (location != null) {
-          // geofence here. i'm leaving my coordinates out in development, but i added some code to seed.ts to automatically inject a .geojson file
-          // if you want to test it out, you'll need to generate your own .geojson file---i suggest geojson.io. we'll provide a milton one once gotcha gets closer
-
-          await updateChaserTargetLocation(profile, location, email);
+    if (!request.auth || !request.auth.token.email) {
+        throw new HttpsError("unauthenticated", "User must be authenticated");
     }
 
+    let email;
+    if (!request.data.email) {
+        email = request.auth.token.email;
+    } else {
+        // Make sure the requester is an admin
+        // if they are requesting someone else's info
+
+        const requesterProfileDoc = await db
+            .collection("data")
+            .doc(request.auth.token.email)
+            .get(); // emails are used as the document id
+        const requesterProfile = requesterProfileDoc.data() as Profile | undefined;
+        const requesterRole = requesterProfile?.role;
+
+        if (requesterRole != "admin") {
+            throw new HttpsError(
+                "permission-denied",
+                "User must be admin the access other user's data",
+            );
+        }
+
+        email = request.data.email;
+    }
+
+    const profile = getUserProfileByEmail(request.data.location, email);  
     return profile;
-  } else { 
-    // CREATING A NEW PLAYER ------------- 
-    // todo, this shouldn't be the case after the game starts or else we're gonna get problems
-    if (!isAdmin) { return null }
-    return await createProfile(email);
-  }
 });
