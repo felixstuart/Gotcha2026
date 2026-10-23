@@ -13,7 +13,7 @@ db.settings({
   ssl: false,
 });
 
-async function seedProfiles() {
+export async function seedProfiles() {
   const profiles: Record<string, Profile> = {
     "felix_stuart27@milton.edu": {
       alive: true,
@@ -114,7 +114,7 @@ async function seedProfiles() {
   console.log(`📊 Total profiles in emulator: ${snapshot.size}`);
 }
 
-async function seedLeaderboard() {
+export async function seedLeaderboard() {
   console.log("📝 Seeding leaderboard and 10 new users...");
   const batch = db.batch();
 
