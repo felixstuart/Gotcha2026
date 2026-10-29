@@ -1,15 +1,18 @@
 import { HttpsError, onCall } from "firebase-functions/v2/https";
-import { getFirestore } from "firebase-admin/firestore";
 import { Profile } from "../../types";
 import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
 import { point, polygon, featureCollection } from "@turf/helpers";
-
-const db = getFirestore();
+import { db } from "./firebase";
 
 type Location = [latitude: number, longitude: number];
 
+// geofence here. i'm leaving my coordinates out in development, but i added some code to seed.ts to automatically inject a .geojson file
+// // if you want to test it out, you'll need to generate your own .geojson file---i suggest geojson.io. we'll provide a milton one once gotcha gets closer
 /**
  * Updates target.location for the chaser
+ * so we can say where the chaser tagged their target out
+ * TODO for isaac -- we're doing too many reads then 
+ * -- we really care only about location when the user is tagging out
  * @param profile
  * @param targetLocation 
  */
@@ -48,25 +51,21 @@ export const updateChaserTargetLocation = async (targetProfile: Profile, targetL
     console.log(targetProfile)
 }
 
-
 /**
- * Get a profile based on an email. Assumes you've already validated permissions. Outputs null if no profile found.
- * @param location 
+ * Get a profile based on an email. 
+ * Assumes you've already validated permissions. 
+ * Outputs null if no profile found.
+ * Has side effect (Todo should be removed because Isaac likes functional programming)
+ * of updating the target location for the chaser as well
+ * TODO: don't update target location for chaser if an admin is looking
+ * @param userLocation 
  * @param email 
  * @returns 
  */
-export const getUserProfileByEmail = async (userLocation: Location, userEmail: string): Promise<Profile | null> => {
+export const getUserProfileByEmail = async (userEmail: string): Promise<Profile | null> => {
     const profileDocument = await db.collection("data").doc(userEmail).get(); // emails used as document id
     const profile = profileDocument.data() as Profile | undefined;
     if (!profile) return null;
-
-    if (location != null) {
-      // geofence here. i'm leaving my coordinates out in development, but i added some code to seed.ts to automatically inject a .geojson file
-      // if you want to test it out, you'll need to generate your own .geojson file---i suggest geojson.io. we'll provide a milton one once gotcha gets closer
-
-        updateChaserTargetLocation(profile, userLocation);
-    }
-
     return profile;
 }
 
@@ -104,6 +103,11 @@ export const getProfile = onCall(async (request): Promise<Profile | null> => {
         email = request.data.email;
     }
 
-    const profile = getUserProfileByEmail(request.data.location, email);  
+    const profile = await getUserProfileByEmail(email) ;
+
+    if (request.data.location && profile) {
+        updateChaserTargetLocation(profile, request.data.location)
+    }
+ 
     return profile;
 });

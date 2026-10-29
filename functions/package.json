@@ -9,8 +9,8 @@
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log",
-    "test": "vitest",
-    "test:run": "vitest run",
+    "test": "cd .. && firebase emulators:exec --only firestore,auth,functions 'vitest'",
+    "test:run": "cd .. && firebase emulators:exec --only firestore,auth,functions 'vitest run'",
     "test:coverage": "vitest run --coverage"
   },
   "engines": {

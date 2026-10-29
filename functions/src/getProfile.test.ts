@@ -1,16 +1,35 @@
 import { beforeAll, describe, it, expect } from 'vitest';
-import { getProfile } from './getProfile';
 import { seedProfiles } from '../../seed';
-import { spawn } from 'node:child_process';
+import { Profile } from "../../types";
 
-server = spawn('firebase', ['emulators:start'], { 
-        cwd: path.resolve(process.cwd(), '..'), 
-        stdio: 'inherit', 
-    }
-);
+beforeAll(async () => {
+    await seedProfiles();
+});
 
-describe("getProfile", () => {
-  it("gets existing user's profile", () => {
-    
-  });
+import { getUserProfileByEmail } from './getProfile';
+
+describe("getUserProfileByEmail", () => {
+    it("gets existing user's profile", async () => {
+        const foundAlexProfile = await getUserProfileByEmail("alex_chen@milton.edu");
+        const trueAlexProfile =  {
+            alive: true,
+            role: "player",
+            firstName: "Alex",
+            lastName: "Chen",
+            class: "senior",
+            dayorboard: "wolcott",
+            tags: 0,
+            chaser: "felix_stuart27@milton.edu",
+            target: {
+                firstName: "Jordan",
+                lastName: "Lee",
+                email: "jordan_lee@milton.edu",
+                location: "Pritzker",
+            },
+        } as Profile;
+
+        
+        console.log(foundAlexProfile);
+        expect(foundAlexProfile).toEqual(trueAlexProfile);
+    });
 });

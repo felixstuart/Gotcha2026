@@ -1,4 +1,5 @@
 import * as admin from "firebase-admin";
+import { db } from "./functions/src/firebase";
 import { type Profile, type Leaderboard, type Role } from "./types";
 
 // Initialize Firebase Admin SDK for emulator
@@ -7,11 +8,13 @@ admin.initializeApp({
 });
 
 // Connect to Firestore emulator
-const db = admin.firestore();
+/*
+isaac: is this neccesary?
 db.settings({
   host: "localhost:8080", // Default Firestore emulator port
   ssl: false,
 });
+*/
 
 export async function seedProfiles() {
   const profiles: Record<string, Profile> = {
