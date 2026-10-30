@@ -10,9 +10,8 @@ type Location = [latitude: number, longitude: number];
 // // if you want to test it out, you'll need to generate your own .geojson file---i suggest geojson.io. we'll provide a milton one once gotcha gets closer
 /**
  * Updates target.location for the chaser
- * so we can say where the chaser tagged their target out
- * TODO for isaac -- we're doing too many reads then 
- * -- we really care only about location when the user is tagging out
+ * so we can say where the chaser tagged their target out 
+ * (improves efficiency since Gotcha is read, not write heavy)
  * @param profile
  * @param targetLocation 
  */
@@ -55,9 +54,6 @@ export const updateChaserTargetLocation = async (targetProfile: Profile, targetL
  * Get a profile based on an email. 
  * Assumes you've already validated permissions. 
  * Outputs null if no profile found.
- * Has side effect (Todo should be removed because Isaac likes functional programming)
- * of updating the target location for the chaser as well
- * TODO: don't update target location for chaser if an admin is looking
  * @param userLocation 
  * @param email 
  * @returns 

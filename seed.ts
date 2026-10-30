@@ -51,20 +51,20 @@ export async function seedProfiles() {
       },
     },
     "jordan_lee@milton.edu": {
-      alive: true,
-      role: "player",
-      firstName: "Jordan",
-      lastName: "Lee",
-      class: "sophomore",
-      dayorboard: "day",
-      tags: 0,
-      chaser: "alex_chen@milton.edu",
-      target: {
-        firstName: "Isaac",
-        lastName: "Wu",
-        email: "isaac_wu28@milton.edu",
-        location: "FMC",
-      },
+        alive: true,
+        role: "player",
+        firstName: "Jordan",
+        lastName: "Lee",
+        class: "sophomore",
+        dayorboard: "day",
+        tags: 0,
+        chaser: "alex_chen@milton.edu",
+        target: {
+            firstName: "Isaac",
+            lastName: "Wu",
+            email: "isaac_wu28@milton.edu",
+            location: "FMC",
+        },
     },
     "isaac_wu28@milton.edu": {
       alive: true,
@@ -276,12 +276,15 @@ export async function seedLeaderboard() {
   console.log("✅ Seeded leaderboard and 10 users successfully");
 }
 
-Promise.all([seedProfiles(), seedLeaderboard()])
-  .then(() => {
-    console.log("✨ All seeding completed");
-    process.exit(0);
-  })
-  .catch((err) => {
-    console.error("❌ Error seeding:", err);
-    process.exit(1);
-  });
+if (require.main === module) { // Ensures seed doesn't exit when used in testing
+    Promise.all([seedProfiles(), seedLeaderboard()])
+    .then(() => {
+        console.log("✨ All seeding completed");
+        process.exit(0);
+    })
+    .catch((err) => {
+        console.error("❌ Error seeding:", err);
+        process.exit(1);
+    });
+}
+
