@@ -3,8 +3,13 @@ import { Profile } from "../../types";
 import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
 import { point, polygon, featureCollection } from "@turf/helpers";
 import { db } from "./firebase";
+import type { Position } from "geojson"; // TODO: uses longitude, latitude, be careful
 
-type Location = [latitude: number, longitude: number];
+export type Location = [latitude: number, longitude: number];
+type RawBuilding = {
+    name: string;
+    coords: Position[];
+};
 
 // geofence here. i'm leaving my coordinates out in development, but i added some code to seed.ts to automatically inject a .geojson file
 // // if you want to test it out, you'll need to generate your own .geojson file---i suggest geojson.io. we'll provide a milton one once gotcha gets closer
@@ -16,17 +21,43 @@ type Location = [latitude: number, longitude: number];
  * @param targetLocation 
  */
 export const updateChaserTargetLocation = async (targetProfile: Profile, targetLocation: Location): Promise<void> => {
-    const rawBuildings = [
+    const rawBuildings: RawBuilding[] = [
         {
             name: "Stuart Empire",
-            coords: [[],],
+            coords: [
+                [42.25820, -71.06620],
+                [42.25820, -71.06590],
+                [42.25798, -71.06590],
+                [42.25798, -71.06620],
+                [42.25820, -71.06620],
+            ],
         },
-    ]; 
+        {
+            name: "FMC",
+            coords: [
+                [42.25848, -71.06615],
+                [42.25848, -71.06585],
+                [42.25825, -71.06585],
+                [42.25825, -71.06615],
+                [42.25848, -71.06615],
+            ],
+        },
+        {
+            name: "Quad",
+            coords: [
+                [42.25815, -71.06580],
+                [42.25815, -71.06540],
+                [42.25785, -71.06540],
+                [42.25785, -71.06580],
+                [42.25815, -71.06580],
+            ],
+        },
+    ]; // Syntheitcally generated coords -- not yet accurate (Todo)
 
     const buildings = featureCollection(
         rawBuildings
         .filter((rawBuilding) => rawBuilding.coords.every((ring) => ring.length >= 4))
-        .map((rawBuilding) => polygon(rawBuilding.coords, { name: rawBuilding.name })),
+        .map((rawBuilding) => polygon([rawBuilding.coords], { name: rawBuilding.name })),
     );
 
     const building = buildings.features.find((building) => (
