@@ -31,5 +31,23 @@
       "enabled": true
     },
     "singleProjectMode": true
+  },
+  "hosting": {
+    "site": "gotchama",
+    "public": "website/build/client",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
+    "predeploy": [
+      "npm --prefix website run build"
+    ]
   }
 }

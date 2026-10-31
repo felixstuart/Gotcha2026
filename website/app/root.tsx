@@ -1,3 +1,4 @@
+import GotchaLoader from "../components/GotchaHand";
 import {
   isRouteErrorResponse,
   Links,
@@ -77,4 +78,12 @@ export function meta({}: Route.MetaArgs) {
   return [
     { title: "Gotcha" },
   ];
+}
+
+export function HydrateFallback() {
+  return (
+    <div className="w-screen h-screen flex flex-col items-center justify-center p-4 bg-slate-900">
+      <GotchaLoader />
+    </div>
+  );
 }

@@ -1,4 +1,4 @@
-import type { Route } from "./+types/home";
+import type { Route } from "./+types/landing";
 import { FuzzyText } from "../../components/GotchaHero";
 import GoogleLogo from "../../assets/google-logo.png";
 import { useNavigate } from "react-router";
