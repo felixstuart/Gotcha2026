@@ -27,27 +27,50 @@ export async function clientLoader() {
     return redirect("/");
   }
 
+
   const location = await new Promise<GeolocationPosition | null>((resolve) => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          resolve(position)
-        }, 
+          resolve(position);
+        },
         (error) => {
-          resolve(null)
-        }
-      )
+          resolve(null);
+        },
+        // without a timeout this can hang forever (e.g. permission prompt ignored), which blocks the loader
+        { timeout: 10000, maximumAge: 60000 },
+      );
     } else {
-      alert("Location isn't supported by your browser. Certain features might be unavailable.")
-      resolve(null)
+      alert(
+        "Location isn't supported by your browser. Certain features might be unavailable.",
+      );
+      resolve(null);
     }
-  })
-  
+  });
+
   const getProfile = httpsCallable(functions, "getProfile");
 
-  const profileResult = await getProfile({location: [location?.coords.latitude, location?.coords.longitude]}); // always pass an object
+  const profileResult = await getProfile({
+    location: location
+      ? [location.coords.latitude, location.coords.longitude]
+      : null,
+  }); // always pass an object
+
+  // the server just changed our admin claim to match our role, so pick up a fresh token
+  // @ts-ignore
+  if (profileResult.data.claimsChanged) {
+    await auth.currentUser?.getIdToken(true);
+  }
+
+  // admins don't play, so send them straight to the admin panel
+  // @ts-ignore
+  if (profileResult.data.profile?.role == "admin") {
+    return redirect("/app/admin/users");
+  }
+
   const getLastWords = httpsCallable(functions, "getLastWords");
   const lastWordsResult = await getLastWords({});
+
 
   return {
     // @ts-ignore
@@ -63,8 +86,6 @@ export default function Profile({ loaderData }: Route.ComponentProps) {
     user: any;
     lastWords: ClientLastWordsResponse;
   };
-
-  console.log(profile)
 
   const [alive, setAlive] = React.useState(profile.alive);
   const navigate = useNavigate();
@@ -97,8 +118,12 @@ export default function Profile({ loaderData }: Route.ComponentProps) {
           {/* name and profile image card */}
           <div className="bg-slate-800 p-4 rounded-lg m-4 text-center items-center flex flex-col space-y-4">
             <img src={user.photoURL} className="rounded-full" />
-            <h2 className="text-2xl font-bold">{profile.firstName} {profile.lastName}</h2>
-            <h2 className="italic font-light text-slate-300">{profile.location}</h2>
+            <h2 className="text-2xl font-bold">
+              {profile.firstName} {profile.lastName}
+            </h2>
+            <h2 className="italic font-light text-slate-300">
+              {profile.location}
+            </h2>
           </div>
           {alive ? (
             <div className="m-4 flex-col space-y-4">
@@ -119,7 +144,9 @@ export default function Profile({ loaderData }: Route.ComponentProps) {
           {alive ? (
             <div className="bg-slate-800 p-4 rounded-lg m-4 text-center items-center flex flex-col">
               <h2 className="text-xl font-semibold">Target</h2>
-              <h1 className="text-2xl font-bold">{profile.target.firstName} {profile.target.lastName}</h1>
+              <h1 className="text-2xl font-bold">
+                {profile.target.firstName} {profile.target.lastName}
+              </h1>
               <p className="italic font-light text-slate-300">
                 {profile.target.email}
               </p>
@@ -130,7 +157,10 @@ export default function Profile({ loaderData }: Route.ComponentProps) {
           <h1 className="font-bold text-xl">Last Words</h1>
           <div>
             {lastWords.lastWords.map((lw: LastWordsEntry) => (
-              <div key={lw.timestamp} className="bg-slate-800 p-4 rounded-lg m-4">
+              <div
+                key={lw.timestamp}
+                className="bg-slate-800 p-4 rounded-lg m-4"
+              >
                 <p className="italic text-white">"{lw.lw}"</p>
                 <p className="text-sm text-slate-300">
                   - {lw.author} at{" "}
@@ -149,16 +179,15 @@ export default function Profile({ loaderData }: Route.ComponentProps) {
       </>
     );
   } else {
-    
     return (
-      <>
-        <h1
-          className="text-white p-6"
-        >
-          You're an admin. Why are you playing? Go to the /app/admin page.
-        </h1>
-      </>
-    )
+      <div className="p-4">
+        <h1 className="font-bold text-xl">Profile</h1>
+        <div className="bg-slate-800 p-4 rounded-lg m-4 text-center" onClick={() => navigate("/app/admin")}>
+          <h2 className="text-2xl font-bold">Proceed to Admin Panel</h2>
+          <p className="italic font-light text-slate-300">{user.email}</p>
+        </div>
+      </div>
+    );
   }
 }
 

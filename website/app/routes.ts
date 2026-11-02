@@ -14,7 +14,12 @@ export default [
       route("leaderboard", "routes/leaderboard.tsx"),
     ]),
     route("last-words", "routes/last-words.tsx"),
-    route("admin", "routes/admin.tsx")
+    ...prefix("admin", [
+      layout("../components/AdminLayout.tsx", [
+        route("users", "routes/admin/users.tsx"),
+        // route("gameplay", "routes/admin/gameplay.tsx"),
+      ]),
+    ]),
   ]),
 ] satisfies RouteConfig;
 //

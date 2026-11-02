@@ -1,14 +1,16 @@
-import { HttpsError, onCall } from "firebase-functions/v2/https";
+import { CallableRequest, HttpsError, onCall } from "firebase-functions/v2/https";
 import { getFirestore } from "firebase-admin/firestore";
-import { Profile } from "../../types";
+import { Profile, Role } from "../../types";
+import { requireAdmin, syncRoleClaim } from "./auth";
 import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
-import { point, polygon, featureCollection } from "@turf/helpers";
+import { point, featureCollection } from "@turf/helpers";
+import type { Feature, FeatureCollection, MultiPolygon, Polygon } from "geojson";
 
 /**
  * Gets the user's profile and
  * creates a **player** (not admin) profile if the user hasn't joined the game yet
  */
-export async const getProfile = onCall(async (request) => {
+export const getProfile = onCall(async (request) => {
   if (!request.auth || !request.auth.token.email) {
     throw new HttpsError("unauthenticated", "User must be authenticated");
   }
@@ -22,21 +24,8 @@ export async const getProfile = onCall(async (request) => {
   } else {
     // Make sure the requester is an admin
     // if they are requesting someone else's info
+    requireAdmin(request);
     isAdmin = true;
-    const requesterProfileDoc = await db
-      .collection("data")
-      .doc(request.auth.token.email)
-      .get(); // emails used as document id
-    const requesterProfile = requesterProfileDoc.data() as Profile | undefined;
-    const requesterRole = requesterProfile?.role;
-
-    if (requesterRole != "admin") {
-      throw new HttpsError(
-        "permission-denied",
-        "User must be admin the access other user's data",
-      );
-    }
-
     email = request.data.email;
   }
 
@@ -47,26 +36,29 @@ export async const getProfile = onCall(async (request) => {
   if (profile != undefined) {
     const location = request.data.location;
     if (!profile) throw new Error("Profile not found");
-    if (location != null) {
-      // geofence here. i'm leaving my coordinates out in development, but i added some code to seed.ts to automatically inject a .geojson file
-      // if you want to test it out, you'll need to generate your own .geojson file---i suggest geojson.io. we'll provide a milton one once gotcha gets closer
+    const hasLocation =
+      Array.isArray(location) &&
+      typeof location[0] === "number" &&
+      typeof location[1] === "number";
+    // geofencing is best-effort: a failure here should never stop the profile from loading
+    if (hasLocation) {
+    try {
+      // building polygons live in config/buildings, written by seed.ts from buildings.geojson
+      // (firestore can't store nested arrays, so the FeatureCollection is saved as a JSON string)
+      const buildingsDoc = await db.collection("config").doc("buildings").get();
+      const geojson = buildingsDoc.data()?.geojson;
+      const parsed: FeatureCollection = geojson ?
+        JSON.parse(geojson) :
+        featureCollection([]);
 
-      const rawBuildings = [
-        {
-          name: "Stuart Empire",
-          coords: [
-            [
+      // footprints nobody has named yet aren't geofenced
+      const buildings = parsed.features.filter(
+        (f): f is Feature<Polygon | MultiPolygon> =>
+          !!f.properties?.name &&
+          (f.geometry?.type === "Polygon" || f.geometry?.type === "MultiPolygon"),
+      );
 
-            ],
-          ],
-        },
-      ];
-
-    const buildings = featureCollection(
-        rawBuildings.map((b) => polygon(b.coords, { name: b.name })),
-    );
-
-    const building = buildings.features.find((building) => (
+    const building = buildings.find((building) => (
       booleanPointInPolygon(
         point([location[1], location[0]]), 
         building, 
@@ -78,16 +70,24 @@ export async const getProfile = onCall(async (request) => {
 
       profile.location = buildingName;
 
-      await db.collection("data").doc(profile.chaser).update({
-        "target.location" : buildingName
-      })
+      if (profile.chaser && profile.chaser != "none") {
+        await db.collection("data").doc(profile.chaser).update({
+          "target.location" : buildingName
+        })
+      }
     } else {
       console.log("no building found")
     }
 
-    console.log(profile)
+    } catch (err) {
+      console.error("geofencing failed:", err);
+    }
+    }
 
-    return { profile };
+    console.log(profile);
+
+    const claimsChanged = isAdmin ? false : await trySyncRoleClaim(request, profile.role);
+    return { profile, claimsChanged };
   } else {
     if (!email.endsWith("@milton.edu")) {
       throw new HttpsError("permission-denied", "Invalid email");
@@ -123,6 +123,17 @@ export async const getProfile = onCall(async (request) => {
 
     await db.collection("data").doc(email).set(newProfile);
 
-    return newProfile;
+    const claimsChanged = await trySyncRoleClaim(request, newProfile.role);
+    return { profile: newProfile, claimsChanged };
   }
 });
+
+// like the geofencing, a failed claim sync should never stop the profile from loading
+async function trySyncRoleClaim(request: CallableRequest, role: Role): Promise<boolean> {
+  try {
+    return await syncRoleClaim(request, role);
+  } catch (err) {
+    console.error("role claim sync failed:", err);
+    return false;
+  }
+}

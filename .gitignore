@@ -70,3 +70,9 @@ node_modules/
 
 # firebase service account keys
 serviceAccountKey.json
+# Firebase native config (per-developer download)
+GoogleService-Info.plist
+google-services.json
+
+# Expo mobile app (kept local for now, see mobile/Gotcha/README.md)
+mobile/

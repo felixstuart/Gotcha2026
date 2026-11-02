@@ -1,9 +1,19 @@
 import * as admin from "firebase-admin";
+import { existsSync, readFileSync } from "fs";
+import { join } from "path";
 import { type Profile, type Leaderboard, type Role } from "./types";
 
-// Initialize Firebase Admin SDK for emulator
+// Initialize Firebase Admin SDK for emulator.
+// The service account key is optional: with it, seedAdminClaims also updates the real
+// project's Auth (Firestore below still only ever talks to the emulator)
+const serviceAccountPath = join(__dirname, "serviceAccountKey.json");
+const hasServiceAccount = existsSync(serviceAccountPath);
+
 admin.initializeApp({
   projectId: "felixs-gotcha-tes", // Use your project ID
+  ...(hasServiceAccount && {
+    credential: admin.credential.cert(JSON.parse(readFileSync(serviceAccountPath, "utf8"))),
+  }),
 });
 
 // Connect to Firestore emulator
@@ -17,7 +27,7 @@ async function seedProfiles() {
   const profiles: Record<string, Profile> = {
     "felix_stuart27@milton.edu": {
       alive: true,
-      role: "player",
+      role: "admin",
       firstName: "Felix",
       lastName: "Stuart",
       class: "junior",
@@ -273,7 +283,61 @@ async function seedLeaderboard() {
   console.log("✅ Seeded leaderboard and 10 users successfully");
 }
 
-Promise.all([seedProfiles(), seedLeaderboard()])
+async function seedBuildings() {
+  console.log("📝 Seeding building geofences...");
+
+  // Milton building footprints from OpenStreetMap. name them with geofence/labeler.html
+  const geojson = readFileSync(join(__dirname, "geofence", "buildings.geojson"), "utf8");
+  const named = JSON.parse(geojson).features.filter(
+    (f: { properties?: { name?: string } }) => f.properties?.name,
+  ).length;
+
+  // firestore doesn't allow nested arrays, so the FeatureCollection is stored as a string
+  await db.collection("config").doc("buildings").set({ geojson });
+  console.log(`✅ Seeded buildings (${named} named and geofenced)`);
+}
+
+/**
+ * The website signs in with the real Firebase Auth, so admin custom claims have to be set there.
+ * Gives every seeded admin the `admin` claim (and takes it away from everyone else),
+ * matching what getProfile's role sync would do. Accounts that never signed in are skipped.
+ */
+async function seedAdminClaims() {
+  if (!hasServiceAccount) {
+    console.log("⏭️  No serviceAccountKey.json, skipping admin claims");
+    return;
+  }
+  if (process.env.FIREBASE_AUTH_EMULATOR_HOST) {
+    console.log("⚠️  FIREBASE_AUTH_EMULATOR_HOST is set, so these claims go to the auth emulator, not the real project");
+  }
+
+  console.log("📝 Syncing admin claims...");
+  const auth = admin.auth();
+  const profiles = await db.collection("data").get();
+
+  for (const doc of profiles.docs) {
+    const email = doc.id;
+    const isAdmin = (doc.data() as Profile).role === "admin";
+
+    let user;
+    try {
+      user = await auth.getUserByEmail(email);
+    } catch {
+      continue; // hasn't signed in to the real project yet
+    }
+
+    if ((user.customClaims?.admin === true) === isAdmin) continue;
+
+    const { admin: _admin, ...otherClaims } = user.customClaims ?? {};
+    await auth.setCustomUserClaims(user.uid, isAdmin ? { ...otherClaims, admin: true } : otherClaims);
+    console.log(`   ${isAdmin ? "➕ gave" : "➖ removed"} admin claim ${isAdmin ? "to" : "from"} ${email}`);
+  }
+
+  console.log("✅ Admin claims synced (sign out and back in to pick them up)");
+}
+
+Promise.all([seedProfiles(), seedLeaderboard(), seedBuildings()])
+  .then(seedAdminClaims)
   .then(() => {
     console.log("✨ All seeding completed");
     process.exit(0);
