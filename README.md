@@ -28,3 +28,12 @@ Full command list:
 6. `npm run dev` in `website/`
 
 Btw, if you wanna test out the admin panel, make your self an admin in `seed.ts`, run `npx tsx seed.ts` from the project root, and go to the `/app/admin` page.
+## Security checks
+
+From `functions/`, run `npm run test:security:unit` for fast checks or
+`npm run test:security:emulator` to exercise actual Auth tokens, callable HTTP
+endpoints, Firestore rules, and concurrent transactions. The emulator suite uses
+only the `demo-gotcha-security` project and separate ports from local development
+(`firebase.security.json`). It requires Java and the Firebase CLI; the CLI may
+download the Firestore emulator on first use. It starts and stops its own
+emulators and refuses to seed unless the Auth and Firestore hosts are local.

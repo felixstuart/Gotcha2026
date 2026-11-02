@@ -17,6 +17,9 @@ db.settings({
 */
 
 export async function seedProfiles() {
+  if (!process.env.FIRESTORE_EMULATOR_HOST) {
+    throw new Error("Seeding requires FIRESTORE_EMULATOR_HOST; refusing production writes");
+  }
   const profiles: Record<string, Profile> = {
     "felix_stuart27@milton.edu": {
       alive: true,
@@ -118,6 +121,9 @@ export async function seedProfiles() {
 }
 
 export async function seedLeaderboard() {
+  if (!process.env.FIRESTORE_EMULATOR_HOST) {
+    throw new Error("Seeding requires FIRESTORE_EMULATOR_HOST; refusing production writes");
+  }
   console.log("📝 Seeding leaderboard and 10 new users...");
   const batch = db.batch();
 

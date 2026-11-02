@@ -11,7 +11,9 @@
     "logs": "firebase functions:log",
     "test": "cd .. && firebase emulators:exec --only firestore,auth,functions 'vitest'",
     "test:run": "cd .. && firebase emulators:exec --only firestore,auth,functions 'vitest run'",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:security:unit": "vitest run src/security.test.ts",
+    "test:security:emulator": "npm run build && firebase emulators:exec --config ../firebase.security.json --project demo-gotcha-security --only auth,firestore,functions \"vitest run test/security.emulator.test.ts\""
   },
   "engines": {
     "node": "22"

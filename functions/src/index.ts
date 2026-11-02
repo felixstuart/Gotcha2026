@@ -1,7 +1,5 @@
 import { setGlobalOptions } from "firebase-functions/v2";
-import { initializeApp } from "firebase-admin/app";
-
-initializeApp();
+import "./firebase";
 setGlobalOptions({ maxInstances: 30 });
 
 export { getProfile } from "./getProfile";

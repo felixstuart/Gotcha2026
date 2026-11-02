@@ -1,3 +1,4 @@
+import { requireRegisteredSchoolUser, requestedEmail } from "./authorization";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { Profile } from "../../types";
 import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
@@ -78,7 +79,7 @@ export const updateChaserTargetLocation = async (targetProfile: Profile, targetL
         console.log("no building found"); // todo, maybe fix this silent failure
     }
 
-    console.log(targetProfile)
+
 }
 
 /**
@@ -102,38 +103,24 @@ export const getUserProfileByEmail = async (userEmail: string): Promise<Profile 
  * returns null when they don't have a profile
  */ 
 export const getProfile = onCall(async (request): Promise<Profile | null> => {
-    if (!request.auth || !request.auth.token.email) {
-        throw new HttpsError("unauthenticated", "User must be authenticated");
-    }
-
-    let email;
-    if (!request.data.email) {
-        email = request.auth.token.email;
-    } else {
-        // Make sure the requester is an admin
-        // if they are requesting someone else's info
-
-        const requesterProfileDoc = await db
-            .collection("data")
-            .doc(request.auth.token.email)
-            .get(); // emails are used as the document id
-        const requesterProfile = requesterProfileDoc.data() as Profile | undefined;
-        const requesterRole = requesterProfile?.role;
-
-        if (requesterRole != "admin") {
-            throw new HttpsError(
-                "permission-denied",
-                "User must be admin the access other user's data",
-            );
-        }
-
-        email = request.data.email;
-    }
+  const member = await requireRegisteredSchoolUser(request);
+  const email = requestedEmail(request.data, member.email, member.profile.role);
 
     const profile = await getUserProfileByEmail(email) ;
 
-    if (request.data.location && profile) {
-        updateChaserTargetLocation(profile, request.data.location)
+    const location = request.data?.location;
+    if (location !== undefined && location !== null) {
+        if (!Array.isArray(location) || location.length !== 2 ||
+            !location.every((v: unknown) => typeof v === "number" && Number.isFinite(v)) ||
+            Math.abs(location[0]) > 90 || Math.abs(location[1]) > 180) {
+            throw new HttpsError("invalid-argument", "Invalid coordinates");
+        }
+        if (email !== member.email) {
+            throw new HttpsError("permission-denied", "Only update your own location");
+        }
+        if (profile && profile.alive && profile.role === "player") {
+            await updateChaserTargetLocation(profile, location as Location);
+        }
     }
  
     return profile;
