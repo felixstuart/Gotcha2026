@@ -4,7 +4,7 @@ import { Profile } from "../../types";
 import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
 import { point, polygon, featureCollection } from "@turf/helpers";
 import { db } from "./firebase";
-import type { Position } from "geojson"; // TODO: uses longitude, latitude, be careful
+import type { Position } from "geojson"; // Uses (longitude, latitude) be careful
 
 export type Location = [latitude: number, longitude: number];
 type RawBuilding = {
@@ -57,8 +57,10 @@ export const updateChaserTargetLocation = async (targetProfile: Profile, targetL
 
     const buildings = featureCollection(
         rawBuildings
-        .filter((rawBuilding) => rawBuilding.coords.every((ring) => ring.length >= 4))
-        .map((rawBuilding) => polygon([rawBuilding.coords], { name: rawBuilding.name })),
+        .filter((rawBuilding) => rawBuilding.coords.length >= 4)
+        .map((rawBuilding) => polygon([
+            rawBuilding.coords.map(([latitude, longitude]) => [longitude, latitude]),
+        ], { name: rawBuilding.name })),
     );
 
     const building = buildings.features.find((building) => (
@@ -78,8 +80,6 @@ export const updateChaserTargetLocation = async (targetProfile: Profile, targetL
     } else {
         console.log("no building found"); // todo, maybe fix this silent failure
     }
-
-
 }
 
 /**
@@ -116,7 +116,7 @@ export const getProfile = onCall(async (request): Promise<Profile | null> => {
             throw new HttpsError("invalid-argument", "Invalid coordinates");
         }
         if (email !== member.email) {
-            throw new HttpsError("permission-denied", "Only update your own location");
+            throw new HttpsError("permission-denied", "Only players make updates");
         }
         if (profile && profile.alive && profile.role === "player") {
             await updateChaserTargetLocation(profile, location as Location);

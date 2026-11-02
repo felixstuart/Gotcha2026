@@ -4,8 +4,12 @@ import { Profile } from "../../types";
 import { 
     getUserProfileByEmail, 
     updateChaserTargetLocation, 
+    getProfile,
     Location 
 } from './getProfile';
+import firebaseFunctionsTest from "firebase-functions-test";
+
+const testEnv = firebaseFunctionsTest();
 
 beforeAll(async () => {
     await seedProfiles();
@@ -41,7 +45,7 @@ describe("getUserProfileByEmail", () => {
     });
 });
 
-describe("updateChaserTargetLocation", async () => {
+describe("updateChaserTargetLocation", () => {
     const testPoints = {
         stuartEmpire: [42.25809, -71.06605],
         fmc: [42.25836, -71.06600],
@@ -49,10 +53,12 @@ describe("updateChaserTargetLocation", async () => {
         outside: [42.25900, -71.06700],
     };
 
-    const jordanProfile = await getUserProfileByEmail("jordan_lee@milton.edu");
-    if (!jordanProfile) {
-        throw new Error("Jordan Lee's profile should be seeded");
-    }
+    let jordanProfile: Profile;
+    beforeAll(async () => {
+        const profile = await getUserProfileByEmail("jordan_lee@milton.edu");
+        if (!profile) throw new Error("Jordan Lee's profile should be seeded");
+        jordanProfile = profile;
+    });
 
     it("updates chaser target location when in building", async () => {
         const location = testPoints.stuartEmpire as Location;
@@ -80,6 +86,24 @@ describe("updateChaserTargetLocation", async () => {
         const newChaserTargetLocation = await newChaserProfile?.target.location;
 
         expect(originalChaserTargetLocation).toEqual(newChaserTargetLocation);
-
     })
+});
+
+describe("getProfile", () => {
+    it("makes no location updates for admin reads", async () => {
+        const wrappedGetProfile = testEnv.wrap(getProfile);
+        const email = "alex_chen@milton.edu";
+        const auth = {
+            uid: "isaac-admin",
+            token: { email: "isaac_wu28@milton.edu", email_verified: true },
+        };
+        const chaserBefore = await getUserProfileByEmail("felix_stuart27@milton.edu");
+        const result = await wrappedGetProfile({ data: { email }, auth } as any);
+        expect(result?.firstName).toBe("Alex");
+        await expect(wrappedGetProfile({
+            data: { email, location: [42.25809, -71.06605] }, auth,
+        } as any)).rejects.toMatchObject({ code: "permission-denied" });
+        const chaserAfter = await getUserProfileByEmail("felix_stuart27@milton.edu");
+        expect(chaserAfter?.target.location).toBe(chaserBefore?.target.location);
+    });
 });

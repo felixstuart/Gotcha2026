@@ -9,8 +9,8 @@
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log",
-    "test": "cd .. && firebase emulators:exec --only firestore,auth,functions 'vitest'",
-    "test:run": "cd .. && firebase emulators:exec --only firestore,auth,functions 'vitest run'",
+    "test": "npm run build && firebase emulators:exec --config ../firebase.security.json --project demo-gotcha-security --only auth,firestore,functions \"vitest\"",
+    "test:run": "npm run build && firebase emulators:exec --config ../firebase.security.json --project demo-gotcha-security --only auth,firestore,functions \"vitest run\"",
     "test:coverage": "vitest run --coverage",
     "test:security:unit": "vitest run src/security.test.ts",
     "test:security:emulator": "npm run build && firebase emulators:exec --config ../firebase.security.json --project demo-gotcha-security --only auth,firestore,functions \"vitest run test/security.emulator.test.ts\""
@@ -30,7 +30,7 @@
     "eslint": "^8.9.0",
     "eslint-config-google": "^0.14.0",
     "eslint-plugin-import": "^2.25.4",
-    "firebase-functions-test": "^3.1.0",
+    "firebase-functions-test": "^3.5.0",
     "typescript": "^5.7.3",
     "vitest": "^5.0.5"
   },
