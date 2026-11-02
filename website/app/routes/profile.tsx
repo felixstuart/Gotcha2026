@@ -44,7 +44,7 @@ export async function clientLoader() {
   
   const getProfile = httpsCallable(functions, "getProfile");
 
-  const profileResult = await getProfile({location: [location?.coords.latitude, location?.coords.longitude]}); // always pass an object
+  const profileResult = await getProfile(location ? { location: [location.coords.latitude, location.coords.longitude] } : {}); // always pass an object
   const getLastWords = httpsCallable(functions, "getLastWords");
   const lastWordsResult = await getLastWords({});
 
@@ -63,7 +63,6 @@ export default function Profile({ loaderData }: Route.ComponentProps) {
     lastWords: ClientLastWordsResponse;
   };
 
-  console.log(profile)
 
   const [alive, setAlive] = React.useState(profile.alive);
   const navigate = useNavigate();

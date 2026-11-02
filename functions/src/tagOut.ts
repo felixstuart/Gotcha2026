@@ -1,37 +1,21 @@
+import { requireRegisteredSchoolUser, requestedEmail } from "./authorization";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { getFirestore } from "firebase-admin/firestore";
 import { Profile } from "../../types";
 
 export const tagOut = onCall(async (request) => {
-  if (!request.auth || !request.auth.token.email) {
-    throw new HttpsError("unauthenticated", "User must be authenticated");
-  }
-
+  const member = await requireRegisteredSchoolUser(request);
+  const email = requestedEmail(request.data, member.email, member.profile.role);
   const db = getFirestore();
-  let email;
-
-  if (!request.data.email) {
-    email = request.auth.token.email;
-  } else { 
-    // Make sure the requester is an admin
-    // if they are requesting to tag out someone else
-    const requesterProfileDoc = await db.collection("data").doc(request.auth.token.email).get(); // emails used as document id
-    const requesterProfile = requesterProfileDoc.data() as Profile | undefined;
-    const requesterRole = requesterProfile?.role;
-
-    if (requesterRole != "admin") {
-      throw new HttpsError("permission-denied", "User must be admin the access other user's data");
-    }
-
-    email = request.data.email;
-  }
-
-  console.log(email);
 
   try {
     await db.runTransaction(async (tx) => {
       const userDoc = await tx.get(db.doc(`data/${email}`));
-      const user = userDoc.data() as Profile;
+      const user = userDoc.data() as Profile | undefined;
+      if (!user) throw new HttpsError("not-found", "Profile missing");
+      if (!user.alive || user.role !== "player") {
+        throw new HttpsError("failed-precondition", "Only a living player can be tagged out");
+      }
 
       const chaserDoc = await tx.get(db.doc(`data/${user.chaser}`));
       const chaser = chaserDoc.data() as Profile;
@@ -42,6 +26,10 @@ export const tagOut = onCall(async (request) => {
 
       if (!user || !chaser || !target) {
         throw new HttpsError("not-found", "Profile missing");
+      }
+
+      if (!chaser.alive || chaser.target.email !== email || target.chaser !== email) {
+        throw new HttpsError("failed-precondition", "Chase chain has changed");
       }
 
       const newTargetSnapshot = {
@@ -73,7 +61,8 @@ export const tagOut = onCall(async (request) => {
 
     return { status: 200 };
   } catch (error) {
-    console.error("Tag out transaction failed", error);
+    if (error instanceof HttpsError) throw error;
+    console.error("Tag out transaction failed");
     throw new HttpsError("unknown", "Tag out failed");
   }
 });

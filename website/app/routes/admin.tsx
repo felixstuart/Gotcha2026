@@ -40,7 +40,6 @@ export async function clientLoader({ request }: Route.ClientLoaderArgs) {
             profile: Profile;
         } | null;
         searchProfileResult = result?.profile;
-        console.log("Search profile result:", searchProfileResult);
     }
 
     return {
@@ -57,7 +56,6 @@ export default function AdminPanel({ loaderData }: Route.ComponentProps) {
         searchProfile: Profile | null,
     };
 
-    console.log(searchProfile);
     
     const tagOut = async () => {
         try {

@@ -1,4 +1,5 @@
 import * as admin from "firebase-admin";
+import { db } from "./functions/src/firebase";
 import { type Profile, type Leaderboard, type Role } from "./types";
 
 // Initialize Firebase Admin SDK for emulator
@@ -7,13 +8,18 @@ admin.initializeApp({
 });
 
 // Connect to Firestore emulator
-const db = admin.firestore();
+/*
+isaac: is this neccesary?
 db.settings({
   host: "localhost:8080", // Default Firestore emulator port
   ssl: false,
 });
+*/
 
-async function seedProfiles() {
+export async function seedProfiles() {
+  if (!process.env.FIRESTORE_EMULATOR_HOST) {
+    throw new Error("Seeding requires FIRESTORE_EMULATOR_HOST; refusing production writes");
+  }
   const profiles: Record<string, Profile> = {
     "felix_stuart27@milton.edu": {
       alive: true,
@@ -48,20 +54,20 @@ async function seedProfiles() {
       },
     },
     "jordan_lee@milton.edu": {
-      alive: true,
-      role: "player",
-      firstName: "Jordan",
-      lastName: "Lee",
-      class: "sophomore",
-      dayorboard: "day",
-      tags: 0,
-      chaser: "alex_chen@milton.edu",
-      target: {
-        firstName: "Isaac",
-        lastName: "Wu",
-        email: "isaac_wu28@milton.edu",
-        location: "FMC",
-      },
+        alive: true,
+        role: "player",
+        firstName: "Jordan",
+        lastName: "Lee",
+        class: "sophomore",
+        dayorboard: "day",
+        tags: 0,
+        chaser: "alex_chen@milton.edu",
+        target: {
+            firstName: "Isaac",
+            lastName: "Wu",
+            email: "isaac_wu28@milton.edu",
+            location: "FMC",
+        },
     },
     "isaac_wu28@milton.edu": {
       alive: true,
@@ -114,7 +120,10 @@ async function seedProfiles() {
   console.log(`📊 Total profiles in emulator: ${snapshot.size}`);
 }
 
-async function seedLeaderboard() {
+export async function seedLeaderboard() {
+  if (!process.env.FIRESTORE_EMULATOR_HOST) {
+    throw new Error("Seeding requires FIRESTORE_EMULATOR_HOST; refusing production writes");
+  }
   console.log("📝 Seeding leaderboard and 10 new users...");
   const batch = db.batch();
 
@@ -273,12 +282,15 @@ async function seedLeaderboard() {
   console.log("✅ Seeded leaderboard and 10 users successfully");
 }
 
-Promise.all([seedProfiles(), seedLeaderboard()])
-  .then(() => {
-    console.log("✨ All seeding completed");
-    process.exit(0);
-  })
-  .catch((err) => {
-    console.error("❌ Error seeding:", err);
-    process.exit(1);
-  });
+if (require.main === module) { // Ensures seed doesn't exit when used in testing
+    Promise.all([seedProfiles(), seedLeaderboard()])
+    .then(() => {
+        console.log("✨ All seeding completed");
+        process.exit(0);
+    })
+    .catch((err) => {
+        console.error("❌ Error seeding:", err);
+        process.exit(1);
+    });
+}
+

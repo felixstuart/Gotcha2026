@@ -1,11 +1,10 @@
-import { HttpsError, onCall } from "firebase-functions/v2/https";
+import { requireRegisteredSchoolUser } from "./authorization";
+import { onCall } from "firebase-functions/v2/https";
 import { getFirestore } from "firebase-admin/firestore";
 import { LastWordsEntry } from "../../types";
 
 export const getLastWords = onCall(async (request) => {
-  if (!request.auth || !request.auth.token.email) {
-    throw new HttpsError("unauthenticated", "User must be authenticated");
-  }
+  await requireRegisteredSchoolUser(request);
 
   const db = getFirestore();
   const snaps = await db

@@ -1,8 +1,6 @@
 import { setGlobalOptions } from "firebase-functions/v2";
-import { initializeApp } from "firebase-admin/app";
-
-initializeApp();
-setGlobalOptions({ maxInstances: 30 });
+import "./firebase";
+setGlobalOptions({ maxInstances: 60 });
 
 export { getProfile } from "./getProfile";
 export { tagOut } from "./tagOut";
