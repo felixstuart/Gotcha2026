@@ -3,7 +3,6 @@ import { app, auth, functions } from "../../firebase";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { redirect, useNavigate } from "react-router";
-import GotchaLoader from "../../components/GotchaHand";
 import type { Route } from "../+types/root";
 import type {
   ClientLastWordsResponse,
@@ -170,14 +169,6 @@ export function ErrorBoundary({ error }: { error: Error }) {
       <div className="mb-8 w-full flex justify-center">
         <p className="text-sm text-red-300">{error.message}</p>
       </div>
-    </div>
-  );
-}
-
-export function HydrateFallback() {
-  return (
-    <div className="w-screen h-screen flex flex-col items-center justify-center p-4 bg-slate-900">
-      <GotchaLoader />
     </div>
   );
 }
