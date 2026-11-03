@@ -8,7 +8,8 @@ import { functions } from "../../firebase";
 import type { Leaderboard } from "../../../types";
 
 export async function clientLoader() {
-  await fetchAndActivate(remoteConfig); // fetch latest values
+  // Remote Config has no local emulator. Keep local simulation offline.
+  if (!import.meta.env.DEV) await fetchAndActivate(remoteConfig);
   const endDateValue = getValue(remoteConfig, "endDate");
   const endDate = endDateValue.asString();
 

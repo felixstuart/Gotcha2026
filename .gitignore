@@ -73,3 +73,7 @@ node_modules/
 
 # firebase service account keys
 serviceAccountKey.json
+
+# Private initial player list
+/initial emails
+/initial emails.txt

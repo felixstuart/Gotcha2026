@@ -29,6 +29,7 @@ export const auth = getAuth(app);
 export const functions = getFunctions(app, "us-central1");
 
 if (import.meta.env.DEV) {
+  connectAuthEmulator(auth, "http://localhost:9099", { disableWarnings: true });
   connectFunctionsEmulator(functions, "localhost", 5001);
 }
 

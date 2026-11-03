@@ -19,13 +19,10 @@ export async function clientLoader({ request }: Route.ClientLoaderArgs) {
         return redirect("/");
     }
 
-    const getProfile = httpsCallable(functions, "getProfile");
-    const adminProfileResult = (await getProfile({})).data as {
-        profile: Profile;
-    };
-    const adminProfile = adminProfileResult.profile;
+    const getProfile = httpsCallable<object, Profile | null>(functions, "getProfile");
+    const adminProfile = (await getProfile({})).data;
     
-    if (adminProfile.role != "admin") {
+    if (!adminProfile || adminProfile.role != "admin") {
         return redirect("/app/profile");
     }
 
@@ -36,10 +33,7 @@ export async function clientLoader({ request }: Route.ClientLoaderArgs) {
     let searchProfileResult;
 
     if (email) {
-        const result = (await getProfile({email: email})).data as {
-            profile: Profile;
-        } | null;
-        searchProfileResult = result?.profile;
+        searchProfileResult = (await getProfile({email: email})).data;
     }
 
     return {

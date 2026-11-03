@@ -28,13 +28,20 @@ export async function clientLoader() {
 
   const location = await new Promise<GeolocationPosition | null>((resolve) => {
     if (navigator.geolocation) {
+      // The geolocation timeout excludes time waiting for permission.
+      const timer = setTimeout(() => resolve(null), 5000);
+      const finish = (position: GeolocationPosition | null) => {
+        clearTimeout(timer);
+        resolve(position);
+      };
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          resolve(position)
+          finish(position)
         }, 
         (error) => {
-          resolve(null)
-        }
+          finish(null)
+        },
+        { timeout: 5000, maximumAge: 60000 }
       )
     } else {
       alert("Location isn't supported by your browser. Certain features might be unavailable.")
@@ -42,15 +49,15 @@ export async function clientLoader() {
     }
   })
   
-  const getProfile = httpsCallable(functions, "getProfile");
+  const getProfile = httpsCallable<object, Profile | null>(functions, "getProfile");
 
   const profileResult = await getProfile(location ? { location: [location.coords.latitude, location.coords.longitude] } : {}); // always pass an object
+  if (!profileResult.data) throw new Error("No Gotcha profile found for your account");
   const getLastWords = httpsCallable(functions, "getLastWords");
   const lastWordsResult = await getLastWords({});
 
   return {
-    // @ts-ignore
-    profile: profileResult.data.profile,
+    profile: profileResult.data,
     user: user,
     lastWords: lastWordsResult.data,
   };
