@@ -23,7 +23,7 @@ export default function Layout() {
 
     return (
         <div className="bg-slate-900 dark:bg-slate-900 text-white min-w-full min-h-screen">
-        <header className="flex items-center p-2">
+        <header className="flex items-center p-2 flex-col md:flex-row justify-between">
             <div className="flex items-center">
                 <img
                     src={GotchaLogo}
@@ -34,20 +34,20 @@ export default function Layout() {
                     Gotcha
                 </h1>
             </div>
-            <div className="flex ml-auto mr-4 space-x-8 *:font-bold text-center text-xl items-center *:hover:text-slate-300">
-
-            {
-                pathname === "/app/profile" ?
-                    <NavLink className="flex items-center underline" to={"/app/profile"}>Profile</NavLink> :
-                    <NavLink className="flex items-center" to={"/app/profile"}>Profile</NavLink>
-            }
-            {    
-                pathname === "/app/leaderboard" ?
-                    <NavLink className="flex items-center underline" to={"/app/leaderboard"}>Leaderboard</NavLink> :
-                    <NavLink className="flex items-center" to={"/app/leaderboard"}>Leaderboard</NavLink>
-            }
-
-            <button className="bg-slate-600 px-3 py-1 rounded-sm" onClick={() => signUserOut()}>Sign out</button>
+            <div className="flex w-full md:w-fit flex-col md:flex-row pr-8 pl-8 gap-8 justify-between *:font-bold text-center text-xl items-center *:hover:text-slate-300">
+                <div className="flex justify-between gap-8">
+                    {
+                        pathname === "/app/profile" ?
+                            <NavLink className="flex items-center underline" to={"/app/profile"}>Profile</NavLink> :
+                            <NavLink className="flex items-center" to={"/app/profile"}>Profile</NavLink>
+                    }
+                    {    
+                        pathname === "/app/leaderboard" ?
+                            <NavLink className="flex items-center underline" to={"/app/leaderboard"}>Leaderboard</NavLink> :
+                            <NavLink className="flex items-center" to={"/app/leaderboard"}>Leaderboard</NavLink>
+                    }
+                </div>
+                <button className="bg-slate-600 px-3 py-1 rounded-sm" onClick={() => signUserOut()}>Sign out</button>
             </div>
         </header>
         <div>

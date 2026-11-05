@@ -55,23 +55,7 @@ export default function Leaderboard({ loaderData }: Route.ComponentProps) {
   }, [endDate]);
 
   return (
-    <div className="flex flex-col sm:flex-col md:flex-row flex-1 p-8 items-center">
-      <div className="space-y-2">
-        <h1 className="font-bold text-xl">Leaderboard</h1>
-        {
-          leaderboard &&
-          leaderboard.topTaggers && 
-          leaderboard.topTaggers.map(({ name , tags }: { name: string; tags: number }, index: number) => (
-            <LeaderboardCard
-              name={name}
-              tags={tags}
-              position={index + 1}
-              key={index}
-            />
-          ))
-        }
-      </div>
-
+    <div className="flex flex-col sm:flex-col md:flex-row flex-1 gap-12 sm:p-0 md:p-8 items-center">
       <div className="flex flex-1 flex-col items-center justify-start p-4 rounded-xl space-y-8">
         <h1 className="text-red-500 text-4xl text-center font-bold">
           {timeRemaining}
@@ -85,7 +69,7 @@ export default function Leaderboard({ loaderData }: Route.ComponentProps) {
               {leaderboard && leaderboard.byClass.map((classEntry: { class: string; tags: number }) => (
                 <div
                   key={classEntry.class}
-                  className="flex justify-between p-3 bg-slate-700 rounded-lg"
+                  className="flex justify-between gap-2 p-3 bg-slate-700 rounded-lg "
                 >
                   <h2 className="font-medium capitalize">{classEntry.class}</h2>
                   <h2 className="font-bold">{classEntry.tags}</h2>
@@ -110,6 +94,22 @@ export default function Leaderboard({ loaderData }: Route.ComponentProps) {
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <h1 className="font-bold text-xl">Leaderboard</h1>
+        {
+          leaderboard &&
+          leaderboard.topTaggers && 
+          leaderboard.topTaggers.map(({ name , tags }: { name: string; tags: number }, index: number) => (
+            <LeaderboardCard
+              name={name}
+              tags={tags}
+              position={index + 1}
+              key={index}
+            />
+          ))
+        }
       </div>
     </div>
   );

@@ -8,13 +8,10 @@ admin.initializeApp({
 });
 
 // Connect to Firestore emulator
-/*
-isaac: is this neccesary?
 db.settings({
   host: "localhost:8080", // Default Firestore emulator port
   ssl: false,
 });
-*/
 
 export async function seedProfiles() {
   if (!process.env.FIRESTORE_EMULATOR_HOST) {
