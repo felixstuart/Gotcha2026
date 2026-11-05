@@ -1,7 +1,12 @@
 import { requireRegisteredSchoolUser } from "./authorization";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { getFirestore } from "firebase-admin/firestore";
+import { lastWordsIndexPath } from "./getLastWords";
 
+/**
+ * Sets the user's last words if they are tagging out
+ * Deletes the last words index as the index will now be outdated
+ */
 export const setLastWords = onCall(async (request) => {
   const member = await requireRegisteredSchoolUser(request);
 
@@ -17,6 +22,7 @@ export const setLastWords = onCall(async (request) => {
     if (!snap.exists) throw new HttpsError("not-found", "Last words doc not found");
     if (snap.data()?.lw) throw new HttpsError("already-exists", "Last words already set");
     tx.update(ref, { lw: lastWords });
+    if (lastWords !== "") tx.delete(db.doc(lastWordsIndexPath));
   });
   return { status: 200 };
 });

@@ -106,7 +106,7 @@ export const getProfile = onCall(async (request): Promise<Profile | null> => {
   const member = await requireRegisteredSchoolUser(request);
   const email = requestedEmail(request.data, member.email, member.profile.role);
 
-    const profile = await getUserProfileByEmail(email) ;
+    const profile = email === member.email ? member.profile : await getUserProfileByEmail(email);
 
     const location = request.data?.location;
     if (location !== undefined && location !== null) {

@@ -1,6 +1,7 @@
 import { requireRegisteredSchoolUser, requestedEmail } from "./authorization";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { getFirestore } from "firebase-admin/firestore";
+import { lastWordsIndexPath } from "./getLastWords";
 import { Profile } from "../../types";
 
 export const tagOut = onCall(async (request) => {
@@ -52,6 +53,8 @@ export const tagOut = onCall(async (request) => {
         chaser: user.chaser,
       });
 
+      // A revived player can be tagged out again, replacing their old entry.
+      tx.delete(db.doc(lastWordsIndexPath));
       tx.set(db.doc(`lastWords/${email}`), {
         lw: "",
         author: `${user.firstName} ${user.lastName}`,
