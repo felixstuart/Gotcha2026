@@ -17,7 +17,7 @@ export default [
     ...prefix("admin", [
       layout("../components/AdminLayout.tsx", [
         route("users", "routes/admin/users.tsx"),
-        // route("gameplay", "routes/admin/gameplay.tsx"),
+        route("gameplay", "routes/admin/gameplay.tsx"),
       ]),
     ]),
   ]),

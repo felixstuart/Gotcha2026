@@ -2,6 +2,7 @@ import { CallableRequest, HttpsError, onCall } from "firebase-functions/v2/https
 import { getFirestore } from "firebase-admin/firestore";
 import { Profile, Role } from "../../types";
 import { requireAdmin, syncRoleClaim } from "./auth";
+import { getSettings } from "./settings";
 import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
 import { point, featureCollection } from "@turf/helpers";
 import type { Feature, FeatureCollection, MultiPolygon, Polygon } from "geojson";
@@ -40,8 +41,9 @@ export const getProfile = onCall(async (request) => {
       Array.isArray(location) &&
       typeof location[0] === "number" &&
       typeof location[1] === "number";
-    // geofencing is best-effort: a failure here should never stop the profile from loading
-    if (hasLocation) {
+    // geofencing is best-effort: a failure here should never stop the profile from loading.
+    // admins can switch location off in the game settings
+    if (hasLocation && (await getSettings()).locationEnabled) {
     try {
       // building polygons live in config/buildings, written by seed.ts from buildings.geojson
       // (firestore can't store nested arrays, so the FeatureCollection is saved as a JSON string)

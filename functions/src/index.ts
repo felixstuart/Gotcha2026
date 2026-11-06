@@ -15,3 +15,5 @@ export { rebuildAdminIndex } from "./rebuildAdminIndex";
 export { syncAdminIndex } from "./syncAdminIndex";
 export { adminUpdateProfile } from "./adminUpdateProfile";
 export { getAdminLog } from "./getAdminLog";
+export { revenge } from "./revenge";
+export { getGameSettings, updateGameSettings } from "./settings";

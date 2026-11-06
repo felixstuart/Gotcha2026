@@ -93,7 +93,7 @@ export type AdminProfileChanges = Partial<EditableProfileFields> & {
   targetEmail?: string;
 };
 
-export type AdminAction = "updateProfile" | "tagOut" | "rebuildIndex";
+export type AdminAction = "updateProfile" | "tagOut" | "rebuildIndex" | "updateSettings";
 
 // One entry in the adminLog collection. Written by the admin functions in the
 // same transaction as the change itself, so the log can't drift from reality.
@@ -104,4 +104,18 @@ export interface AdminLogEntry {
   target: string | null; // player email, if the action was about one player
   changes?: Record<string, { from: unknown; to: unknown }>;
   affected?: Array<string>; // other players a chain change moved
+}
+
+// Game-wide settings admins can change, stored in config/game.
+// Functions read them through a short in-memory cache (functions/src/settings.ts).
+export interface GameSettings {
+  // players can only be tagged out between these times (ms since epoch). null means no limit
+  startsAt: number | null;
+  endsAt: number | null;
+  // when a player is tagged out, everyone they tagged comes back (functions/src/revenge.ts)
+  revengeEnabled: boolean;
+  // players' phones report which building they're in, and their chaser sees it
+  locationEnabled: boolean;
+  updatedAt: number | null;
+  updatedBy: string | null;
 }

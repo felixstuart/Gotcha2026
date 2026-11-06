@@ -26,12 +26,15 @@ type Pages = {
   "/app/admin/users": {
     params: {};
   };
+  "/app/admin/gameplay": {
+    params: {};
+  };
 };
 
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/app/profile" | "/app/leaderboard" | "/app/last-words" | "/app/admin/users";
+    page: "/" | "/app/profile" | "/app/leaderboard" | "/app/last-words" | "/app/admin/users" | "/app/admin/gameplay";
   };
   "./routes/home.tsx": {
     id: "routes/home";
@@ -55,11 +58,15 @@ type RouteFiles = {
   };
   "../components/AdminLayout.tsx": {
     id: "../components/AdminLayout";
-    page: "/app/admin/users";
+    page: "/app/admin/users" | "/app/admin/gameplay";
   };
   "routes/admin/users.tsx": {
     id: "routes/admin/users";
     page: "/app/admin/users";
+  };
+  "routes/admin/gameplay.tsx": {
+    id: "routes/admin/gameplay";
+    page: "/app/admin/gameplay";
   };
 };
 
@@ -72,4 +79,5 @@ type RouteModules = {
   "routes/last-words": typeof import("./app/routes/last-words.tsx");
   "../components/AdminLayout": unknown;
   "routes/admin/users": typeof import("./app/routes/admin/users.tsx");
+  "routes/admin/gameplay": typeof import("./app/routes/admin/gameplay.tsx");
 };

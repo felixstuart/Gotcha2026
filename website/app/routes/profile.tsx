@@ -6,6 +6,7 @@ import { redirect, useNavigate } from "react-router";
 import GotchaLoader from "../../components/GotchaHand";
 import type { Route } from "../+types/root";
 import type {
+  GameSettings,
   ClientLastWordsResponse,
   Profile,
   ClientTaggedOutResponse,
@@ -28,33 +29,15 @@ export async function clientLoader() {
   }
 
 
-  const location = await new Promise<GeolocationPosition | null>((resolve) => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          resolve(position);
-        },
-        (error) => {
-          resolve(null);
-        },
-        // without a timeout this can hang forever (e.g. permission prompt ignored), which blocks the loader
-        { timeout: 10000, maximumAge: 60000 },
-      );
-    } else {
-      alert(
-        "Location isn't supported by your browser. Certain features might be unavailable.",
-      );
-      resolve(null);
-    }
-  });
-
+  // location isn't fetched here: waiting for it (up to 10s) would hold up the whole page.
+  // the page shares it in the background once it's showing (see the effect in Profile)
   const getProfile = httpsCallable(functions, "getProfile");
+  const getGameSettings = httpsCallable<unknown, GameSettings>(functions, "getGameSettings");
 
-  const profileResult = await getProfile({
-    location: location
-      ? [location.coords.latitude, location.coords.longitude]
-      : null,
-  }); // always pass an object
+  const [profileResult, settingsResult] = await Promise.all([
+    getProfile({}), // always pass an object
+    getGameSettings({}),
+  ]);
 
   // the server just changed our admin claim to match our role, so pick up a fresh token
   // @ts-ignore
@@ -77,17 +60,66 @@ export async function clientLoader() {
     profile: profileResult.data.profile,
     user: user,
     lastWords: lastWordsResult.data,
+    // only ask for location while admins have the location feature switched on
+    locationEnabled: settingsResult.data.locationEnabled,
   };
 }
 
+/**
+ * Finds the player's location after the page has loaded, then sends it to getProfile,
+ * which works out the building and shows it to their chaser.
+ * Returns the building name once it's known (or null if there isn't one).
+ */
+function useSharedLocation(enabled: boolean) {
+  const [building, setBuilding] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (!enabled) return;
+    if (!navigator.geolocation) {
+      alert(
+        "Location isn't supported by your browser. Certain features might be unavailable.",
+      );
+      return;
+    }
+
+    let cancelled = false;
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const getProfile = httpsCallable(functions, "getProfile");
+          const result = await getProfile({
+            location: [position.coords.latitude, position.coords.longitude],
+          });
+          // @ts-ignore
+          const location = result.data.profile?.location;
+          if (!cancelled && location) setBuilding(location);
+        } catch (err) {
+          // sharing location is best-effort, so the page keeps working without it
+          console.error("location update failed:", err);
+        }
+      },
+      () => {}, // denied or unavailable: carry on without location
+      { timeout: 10000, maximumAge: 60000 },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled]);
+
+  return building;
+}
+
 export default function Profile({ loaderData }: Route.ComponentProps) {
-  const { profile, user, lastWords } = loaderData as unknown as {
+  const { profile, user, lastWords, locationEnabled } = loaderData as unknown as {
     profile: any;
     user: any;
     lastWords: ClientLastWordsResponse;
+    locationEnabled: boolean;
   };
 
   const [alive, setAlive] = React.useState(profile.alive);
+  // only players still in the game share their location
+  const building = useSharedLocation(locationEnabled && profile.alive && profile.role === "player");
   const navigate = useNavigate();
 
   const tagOut = async () => {
@@ -122,7 +154,7 @@ export default function Profile({ loaderData }: Route.ComponentProps) {
               {profile.firstName} {profile.lastName}
             </h2>
             <h2 className="italic font-light text-slate-300">
-              {profile.location}
+              {building ?? profile.location}
             </h2>
           </div>
           {alive ? (

@@ -4,6 +4,7 @@ import { getFirestore } from "firebase-admin/firestore";
 import { requireAdmin } from "./auth";
 import { ADMIN_INDEX_PATH, logAdminAction, toAdminIndexRow } from "./adminIndex";
 import { Chain } from "./chain";
+import { gamePhase, getSettings } from "./settings";
 
 export const tagOut = onCall(async (request) => {
   if (!request.auth || !request.auth.token.email) {
@@ -21,6 +22,14 @@ export const tagOut = onCall(async (request) => {
     // if they are requesting to tag out someone else
     adminEmail = requireAdmin(request);
     email = request.data.email;
+  }
+
+  // players can only tag themselves out while the game is running.
+  // admins can still tag people out any time (e.g. to fix a mistake after it ends)
+  if (!adminEmail) {
+    const phase = gamePhase(await getSettings());
+    if (phase === "before") throw new HttpsError("failed-precondition", "Gotcha hasn't started yet");
+    if (phase === "over") throw new HttpsError("failed-precondition", "Gotcha is over");
   }
 
   console.log(email);
