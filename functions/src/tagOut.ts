@@ -1,71 +1,83 @@
 import { requireRegisteredSchoolUser, requestedEmail } from "./authorization";
+import { hasAdminClaim } from "./auth";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
+import { AdminIndexRow } from "../../types";
 import { getFirestore } from "firebase-admin/firestore";
 import { lastWordsIndexPath } from "./getLastWords";
-import { Profile } from "../../types";
+import { ADMIN_INDEX_PATH, logAdminAction, toAdminIndexRow } from "./adminIndex";
+import { Chain } from "./chain";
+import { gamePhase, getSettings } from "./settings";
 
 export const tagOut = onCall(async (request) => {
   const member = await requireRegisteredSchoolUser(request);
-  const email = requestedEmail(request.data, member.email, member.profile.role);
+  const isAdmin = hasAdminClaim(request);
+  const email = requestedEmail(request.data, member.email, isAdmin);
+  // requestedEmail only lets admins pick someone else, so this is an admin tagging a player out
+  const adminEmail = email !== member.email ? member.email : null;
   const db = getFirestore();
 
+  // players can only tag themselves out while the game is running.
+  // admins can still tag people out any time (e.g. to fix a mistake after it ends)
+  if (!isAdmin) {
+    const phase = gamePhase(await getSettings());
+    if (phase === "before") throw new HttpsError("failed-precondition", "Gotcha hasn't started yet");
+    if (phase === "over") throw new HttpsError("failed-precondition", "Gotcha is over");
+  }
+
   try {
-    await db.runTransaction(async (tx) => {
-      const userDoc = await tx.get(db.doc(`data/${email}`));
-      const user = userDoc.data() as Profile | undefined;
-      if (!user) throw new HttpsError("not-found", "Profile missing");
-      if (!user.alive || user.role !== "player") {
+    const result = await db.runTransaction(async (tx) => {
+      const chain = new Chain(db, tx);
+      const user = await chain.load(email);
+      if (user.role !== "player") {
         throw new HttpsError("failed-precondition", "Only a living player can be tagged out");
       }
 
-      const chaserDoc = await tx.get(db.doc(`data/${user.chaser}`));
-      const chaser = chaserDoc.data() as Profile;
+      // throws if they're already out (e.g. a double click), so nobody gets a tag twice,
+      // or if the chain around them has changed. their chaser now chases their target
+      const { chaserEmail, winner } = await chain.remove(email);
 
-      const targetEmail = user.target.email;
-      const targetDoc = await tx.get(db.doc(`data/${targetEmail}`));
-      const target = targetDoc.data() as Profile;
+      const chaser = await chain.load(chaserEmail);
+      chaser.tags += 1;
+      chain.touch(chaserEmail);
 
-      if (!user || !chaser || !target) {
-        throw new HttpsError("not-found", "Profile missing");
+      chain.save();
+
+      // write the changed admin table rows now (syncAdminIndex would a moment later),
+      // so the admin table can show them straight away
+      const rows: Record<string, AdminIndexRow> = {};
+      for (const [changedEmail, profile] of chain.changed()) {
+        rows[changedEmail] = toAdminIndexRow(profile);
       }
+      tx.set(db.doc(ADMIN_INDEX_PATH), { players: rows, updatedAt: Date.now() }, { merge: true });
 
-      if (!chaser.alive || chaser.target.email !== email || target.chaser !== email) {
-        throw new HttpsError("failed-precondition", "Chase chain has changed");
+      // admins tagging someone out leave a trail in the admin log
+      if (adminEmail) {
+        logAdminAction(db, tx, {
+          by: adminEmail,
+          action: "tagOut",
+          target: email,
+        });
       }
-
-      const newTargetSnapshot = {
-        firstName: target.firstName,
-        lastName: target.lastName,
-        email: targetEmail,
-        ...(target.location !== undefined && { location: target.location }),
-      };
-
-      tx.update(chaserDoc.ref, {
-        tags: chaser.tags + 1,
-        target: newTargetSnapshot,
-      });
-
-      tx.update(userDoc.ref, {
-        alive: false,
-      });
-
-      tx.update(targetDoc.ref, {
-        chaser: user.chaser,
-      });
 
       // A revived player can be tagged out again, replacing their old entry.
       tx.delete(db.doc(lastWordsIndexPath));
+      // creating this also triggers updateLeaderboard
       tx.set(db.doc(`lastWords/${email}`), {
         lw: "",
         author: `${user.firstName} ${user.lastName}`,
         timestamp: Date.now(),
       });
+
+      return { winner, rows };
     });
 
-    return { status: 200 };
-  } catch (error) {
-    if (error instanceof HttpsError) throw error;
-    console.error("Tag out transaction failed");
+    // winner is set when this tag left only one player standing.
+    // rows are the admin table rows of everyone the tag changed
+    return { status: 200, ...result };
+  } catch (err) {
+    // keep useful errors (like "already out") instead of hiding them behind a generic one
+    if (err instanceof HttpsError) throw err;
+    console.error("Tag out transaction failed:", err);
     throw new HttpsError("unknown", "Tag out failed");
   }
 });

@@ -38,13 +38,13 @@ describe("student data authorization", () => {
     await expect(requireRegisteredSchoolUser(request())).rejects.toMatchObject({ code: "permission-denied" });
   });
   it("prevents students selecting another student's profile", () => {
-    expect(() => requestedEmail({ email: "other@milton.edu" }, "student@milton.edu", "player"))
+    expect(() => requestedEmail({ email: "other@milton.edu" }, "student@milton.edu", false))
       .toThrow("Admin access is required");
-    expect(requestedEmail({ email: "other@milton.edu" }, "admin@milton.edu", "admin"))
+    expect(requestedEmail({ email: "other@milton.edu" }, "admin@milton.edu", true))
       .toBe("other@milton.edu");
   });
   it("rejects document-path injection even for admins", () => {
-    expect(() => requestedEmail({ email: "a/b@milton.edu" }, "admin@milton.edu", "admin"))
+    expect(() => requestedEmail({ email: "a/b@milton.edu" }, "admin@milton.edu", true))
       .toThrow("Invalid school email");
   });
 });

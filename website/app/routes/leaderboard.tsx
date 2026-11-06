@@ -1,58 +1,66 @@
 import { LeaderboardCard } from "../../components/LeaderboardCard";
 import type { Route } from "../+types/root";
-import { remoteConfig } from "../../firebase";
-import { fetchAndActivate, getValue } from "firebase/remote-config";
 import React from "react";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../../firebase";
-import type { Leaderboard } from "../../../types";
+import type { GameSettings, Leaderboard } from "../../../types";
 
 export async function clientLoader() {
-  // Remote Config has no local emulator. Keep local simulation offline.
-  if (!import.meta.env.DEV) await fetchAndActivate(remoteConfig);
-  const endDateValue = getValue(remoteConfig, "endDate");
-  const endDate = endDateValue.asString();
-
-  // pull the leaderboard
+  // pull the leaderboard, and the game times (set by admins) for the countdown
   const getLeaderboard = httpsCallable(functions, "getLeaderboard");
+  const getGameSettings = httpsCallable<unknown, GameSettings>(functions, "getGameSettings");
 
-  const leaderboard = ((await getLeaderboard({})) as any).data.leaderboard;
+  const [leaderboardResult, settingsResult] = await Promise.all([
+    getLeaderboard({}),
+    getGameSettings({}),
+  ]);
 
   return {
-    endDate: endDate,
-    leaderboard: leaderboard as unknown as Leaderboard,
+    startsAt: settingsResult.data.startsAt,
+    endsAt: settingsResult.data.endsAt,
+    leaderboard: (leaderboardResult as any).data.leaderboard as Leaderboard,
   };
 }
 
 export default function Leaderboard({ loaderData }: Route.ComponentProps) {
   // @ts-expect-error
-  const { endDate, leaderboard } = loaderData;
+  const { startsAt, endsAt, leaderboard } = loaderData;
   const [timeRemaining, setTimeRemaining] = React.useState<string>("");
 
   console.log(leaderboard);
 
   React.useEffect(() => {
-    function updateTimeRemaining() {
-      const end = new Date("2026-01-01T20:00").getTime();
-      const now = Date.now();
-      const diff = end - now;
-
-      if (diff <= 0) {
-        setTimeRemaining("Gotcha is Over!");
-        return;
-      }
-
+    function formatDiff(diff: number) {
       const days = Math.floor(diff / (1000 * 60 * 60 * 24));
       const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
       const minutes = Math.floor((diff / (1000 * 60)) % 60);
       const seconds = Math.floor((diff / 1000) % 60);
-      setTimeRemaining(`${days}d ${hours}h ${minutes}m ${seconds}s`);
+      return `${days}d ${hours}h ${minutes}m ${seconds}s`;
+    }
+
+    function updateTimeRemaining() {
+      const now = Date.now();
+
+      if (startsAt !== null && now < startsAt) {
+        setTimeRemaining(`Starts in ${formatDiff(startsAt - now)}`);
+        return;
+      }
+      // no end time set yet, so there's nothing to count down to
+      if (endsAt === null) {
+        setTimeRemaining("");
+        return;
+      }
+      if (now >= endsAt) {
+        setTimeRemaining("Gotcha is Over!");
+        return;
+      }
+      setTimeRemaining(formatDiff(endsAt - now));
     }
 
     updateTimeRemaining();
     const intervalId = setInterval(updateTimeRemaining, 1000);
     return () => clearInterval(intervalId);
-  }, [endDate]);
+  }, [startsAt, endsAt]);
 
   return (
     <div className="flex flex-col sm:flex-col md:flex-row flex-1 gap-12 sm:p-0 md:p-8 items-center">

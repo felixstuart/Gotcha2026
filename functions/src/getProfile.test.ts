@@ -8,11 +8,31 @@ import {
     Location 
 } from './getProfile';
 import firebaseFunctionsTest from "firebase-functions-test";
+import { db } from "./firebase";
 
 const testEnv = firebaseFunctionsTest();
 
+// small test buildings (lat, lng corners), stored the way seed.ts stores the real ones:
+// a GeoJSON FeatureCollection saved as a string in config/buildings
+const testBuildings = {
+    "Stuart Empire": [[42.25820, -71.06620], [42.25820, -71.06590], [42.25798, -71.06590], [42.25798, -71.06620]],
+    "FMC": [[42.25848, -71.06615], [42.25848, -71.06585], [42.25825, -71.06585], [42.25825, -71.06615]],
+    "Quad": [[42.25815, -71.06580], [42.25815, -71.06540], [42.25785, -71.06540], [42.25785, -71.06580]],
+};
+
 beforeAll(async () => {
     await seedProfiles();
+    const features = Object.entries(testBuildings).map(([name, corners]) => {
+        const ring = corners.map(([lat, lng]) => [lng, lat]); // GeoJSON is (longitude, latitude)
+        return {
+            type: "Feature",
+            properties: { name },
+            geometry: { type: "Polygon", coordinates: [[...ring, ring[0]]] },
+        };
+    });
+    await db.collection("config").doc("buildings").set({
+        geojson: JSON.stringify({ type: "FeatureCollection", features }),
+    });
 });
 
 
@@ -95,7 +115,7 @@ describe("getProfile", () => {
         const email = "alex_chen@milton.edu";
         const auth = {
             uid: "isaac-admin",
-            token: { email: "isaac_wu28@milton.edu", email_verified: true },
+            token: { email: "isaac_wu28@milton.edu", email_verified: true, admin: true },
         };
         const chaserBefore = await getUserProfileByEmail("felix_stuart27@milton.edu");
         const result = await wrappedGetProfile({ data: { email }, auth } as any);

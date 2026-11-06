@@ -1,7 +1,14 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // All data access goes through authenticated, authorized Cloud Functions.
+    // Every read and write goes through Cloud Functions, which use the Admin SDK
+    // and skip these rules. Clients get no direct access, so nobody can edit their
+    // own profile (e.g. set role: "admin").
+    //
+    // If admins ever need direct reads (e.g. a live listener), add a narrow rule
+    // for that path only, checking the custom claim:
+    //   allow read: if request.auth.token.admin == true;
     match /{document=**} {
       allow read, write: if false;
     }

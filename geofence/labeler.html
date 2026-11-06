@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Building Labeler</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  body { margin: 0; font: 14px system-ui, sans-serif; display: flex; flex-direction: column; height: 100vh; }
+  header { display: flex; gap: 12px; align-items: center; padding: 8px 12px; border-bottom: 1px solid #ddd; flex-wrap: wrap; }
+  #map { flex: 1; }
+  #status { color: #555; }
+  button, label.btn { padding: 6px 10px; border: 1px solid #888; border-radius: 6px; background: #f6f6f6; cursor: pointer; }
+  input[type=file] { display: none; }
+</style>
+</head>
+<body>
+<header>
+  <label class="btn">Open buildings.geojson<input id="file" type="file" accept=".geojson,.json"></label>
+  <button id="save" disabled>Download labeled file</button>
+  <span id="status">Open geofence/buildings.geojson to start. Click a building to name it; clear the name to un-geofence it.</span>
+</header>
+<div id="map"></div>
+<script>
+// green = named (geofenced), red = still needs a name
+const map = L.map("map").setView([42.2555, -71.069], 17);
+L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  maxZoom: 20, maxNativeZoom: 19,
+  attribution: "&copy; OpenStreetMap contributors",
+}).addTo(map);
+
+let data = null;
+let layer = null;
+const status = document.getElementById("status");
+
+const style = (f) => f.properties.name
+  ? { color: "#1a7f37", weight: 2, fillOpacity: 0.35 }
+  : { color: "#cf222e", weight: 2, fillOpacity: 0.25 };
+
+function render() {
+  if (layer) layer.remove();
+  layer = L.geoJSON(data, {
+    style,
+    onEachFeature: (f, l) => {
+      if (f.properties.name) l.bindTooltip(f.properties.name);
+      l.on("click", () => {
+        const name = prompt(`Name for ${f.properties.osmId}:`, f.properties.name || "");
+        if (name === null) return;
+        f.properties.name = name.trim() || null;
+        render();
+      });
+    },
+  }).addTo(map);
+  const named = data.features.filter((f) => f.properties.name).length;
+  status.textContent = `${named} / ${data.features.length} buildings named`;
+}
+
+function load(text) {
+  data = JSON.parse(text);
+  document.getElementById("save").disabled = false;
+  render();
+  map.fitBounds(layer.getBounds());
+}
+
+document.getElementById("file").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if (file) load(await file.text());
+});
+
+document.getElementById("save").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify(data, null, 1) + "\n"], { type: "application/geo+json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "buildings.geojson";
+  a.click();
+});
+
+// works automatically when the folder is served (e.g. npx serve geofence)
+fetch("buildings.geojson").then((r) => r.ok && r.text()).then((t) => t && load(t)).catch(() => {});
+</script>
+</body>
+</html>

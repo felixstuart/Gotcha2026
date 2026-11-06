@@ -1,13 +1,15 @@
 import { onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { getFirestore } from "firebase-admin/firestore";
 import { Profile } from "../../types";
+import { getSettings } from "./settings";
 
 function targetSnapshot(email: string, profile: Profile) {
   return {
     firstName: profile.firstName,
     lastName: profile.lastName,
     email,
-    location: profile.location,
+    // firestore rejects undefined values, which would fail the whole revenge batch
+    ...(profile.location !== undefined && { location: profile.location }),
   };
 }
 
@@ -31,6 +33,9 @@ export const revenge = onDocumentUpdated("data/{email}", async (event) => {
 
   if (!before || !after) return;
   if (before.alive !== true || after.alive !== false) return;
+
+  // admins can switch revenge off in the game settings
+  if (!(await getSettings()).revengeEnabled) return;
 
   const chaserOfTagger = after.chaser;
   if (!chaserOfTagger || chaserOfTagger === "none") return;
@@ -76,7 +81,7 @@ export const revenge = onDocumentUpdated("data/{email}", async (event) => {
           firstName: after.target.firstName,
           lastName: after.target.lastName,
           email: after.target.email,
-          location: after.target.location,
+          ...(after.target.location !== undefined && { location: after.target.location }),
         };
 
     batch.update(db.doc(`data/${victim.email}`), {

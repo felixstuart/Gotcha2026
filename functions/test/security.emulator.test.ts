@@ -34,7 +34,9 @@ beforeAll(async () => {
     ["unverified@milton.edu", false], ["unregistered@milton.edu", true],
   ] as const;
   for (const [email, emailVerified] of users) {
-    await auth.createUser({ email, emailVerified, password: "emulator-test-only-password" });
+    const user = await auth.createUser({ email, emailVerified, password: "emulator-test-only-password" });
+    // admins are recognised by the admin claim on their token (set before signing in, so it's in the token)
+    if (email === "admin@milton.edu") await auth.setCustomUserClaims(user.uid, { admin: true });
     const response = await fetch(`http://${process.env.FIREBASE_AUTH_EMULATOR_HOST}/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=emulator-only`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password: "emulator-test-only-password", returnSecureToken: true }),

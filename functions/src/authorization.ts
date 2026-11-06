@@ -17,13 +17,17 @@ export async function requireRegisteredSchoolUser(request: CallableRequest) {
   return { email, profile };
 }
 
-export function requestedEmail(data: unknown, callerEmail: string, role: string): string {
+/**
+ * Whose data a call is about: the caller's own, or (admins only) the email in the request.
+ * isAdmin comes from the caller's `admin` custom claim (see hasAdminClaim in auth.ts).
+ */
+export function requestedEmail(data: unknown, callerEmail: string, isAdmin: boolean): string {
   const email = (data as { email?: unknown } | null)?.email;
   if (email === undefined || email === null || email === "") return callerEmail;
   if (typeof email !== "string" || !/^[^/\s@]+@milton\.edu$/.test(email)) {
     throw new HttpsError("invalid-argument", "Invalid school email");
   }
-  if (email !== callerEmail && role !== "admin") {
+  if (email !== callerEmail && !isAdmin) {
     throw new HttpsError("permission-denied", "Admin access is required");
   }
   return email;
