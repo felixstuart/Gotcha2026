@@ -27,10 +27,10 @@ export class Chain {
     if (loaded) return loaded;
 
     const snap = await this.tx.get(this.db.doc(`data/${email}`));
-    if (!snap.exists) {
+    const profile = snap.data() as Profile | undefined;
+    if (!profile) {
       throw new HttpsError("not-found", `No profile for ${email}`);
     }
-    const profile = snap.data() as Profile;
     this.profiles.set(email, profile);
     return profile;
   }

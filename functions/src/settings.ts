@@ -1,11 +1,12 @@
 import { HttpsError, onCall } from "firebase-functions/v2/https";
-import { getFirestore } from "firebase-admin/firestore";
 import { GameSettings } from "../../types";
 import { requireAdmin } from "./auth";
+import { requireRegisteredSchoolUser } from "./authorization";
+import { db } from "./firebase";
 import { logAdminAction } from "./adminIndex";
 
 // stored in config/game
-const settingsDoc = () => getFirestore().collection("config").doc("game");
+const settingsDoc = () => db.collection("config").doc("game");
 
 /**
  * How long each function instance trusts its copy of the settings.
@@ -86,11 +87,9 @@ function parseSettingsUpdate(raw: unknown): Partial<GameSettings> {
   return update;
 }
 
-/** Returns the game settings. Any signed-in user can read them (the app needs the times and switches) */
+/** Returns the game settings. Anyone on the roster can read them (the app needs the times and switches) */
 export const getGameSettings = onCall(async (request): Promise<GameSettings> => {
-  if (!request.auth) {
-    throw new HttpsError("unauthenticated", "User must be authenticated");
-  }
+  await requireRegisteredSchoolUser(request);
   return getSettings();
 });
 
@@ -102,7 +101,6 @@ export const getGameSettings = onCall(async (request): Promise<GameSettings> => 
 export const updateGameSettings = onCall(async (request): Promise<GameSettings> => {
   const adminEmail = requireAdmin(request);
   const update = parseSettingsUpdate((request.data as { settings?: unknown } | null)?.settings);
-  const db = getFirestore();
 
   const settings = await db.runTransaction(async (tx) => {
     const ref = settingsDoc();

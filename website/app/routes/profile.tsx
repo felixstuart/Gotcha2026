@@ -1,9 +1,8 @@
 "use client";
-import { app, auth, functions } from "../../firebase";
+import { app, auth, functions, refreshAdminClaim } from "../../firebase";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { redirect, useNavigate } from "react-router";
-import GotchaLoader from "../../components/GotchaHand";
 import type { Route } from "../+types/root";
 import type {
   GameSettings,
@@ -30,24 +29,22 @@ export async function clientLoader() {
 
 
   // location isn't fetched here: waiting for it (up to 10s) would hold up the whole page.
-  // the page shares it in the background once it's showing (see the effect in Profile)
-  const getProfile = httpsCallable(functions, "getProfile");
+  // the page shares it in the background once it's showing (see useSharedLocation)
+  const getProfile = httpsCallable<object, Profile | null>(functions, "getProfile");
   const getGameSettings = httpsCallable<unknown, GameSettings>(functions, "getGameSettings");
 
   const [profileResult, settingsResult] = await Promise.all([
     getProfile({}), // always pass an object
     getGameSettings({}),
   ]);
+  const profile = profileResult.data;
+  if (!profile) throw new Error("No Gotcha profile found for your account");
 
-  // the server just changed our admin claim to match our role, so pick up a fresh token
-  // @ts-ignore
-  if (profileResult.data.claimsChanged) {
-    await auth.currentUser?.getIdToken(true);
-  }
+  // getProfile may have just changed our admin claim to match our role
+  await refreshAdminClaim(profile);
 
   // admins don't play, so send them straight to the admin panel
-  // @ts-ignore
-  if (profileResult.data.profile?.role == "admin") {
+  if (profile.role == "admin") {
     return redirect("/app/admin/users");
   }
 
@@ -56,8 +53,7 @@ export async function clientLoader() {
 
 
   return {
-    // @ts-ignore
-    profile: profileResult.data.profile,
+    profile,
     user: user,
     lastWords: lastWordsResult.data,
     // only ask for location while admins have the location feature switched on
@@ -86,12 +82,11 @@ function useSharedLocation(enabled: boolean) {
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         try {
-          const getProfile = httpsCallable(functions, "getProfile");
+          const getProfile = httpsCallable<object, Profile | null>(functions, "getProfile");
           const result = await getProfile({
             location: [position.coords.latitude, position.coords.longitude],
           });
-          // @ts-ignore
-          const location = result.data.profile?.location;
+          const location = result.data?.location;
           if (!cancelled && location) setBuilding(location);
         } catch (err) {
           // sharing location is best-effort, so the page keeps working without it
@@ -116,6 +111,7 @@ export default function Profile({ loaderData }: Route.ComponentProps) {
     lastWords: ClientLastWordsResponse;
     locationEnabled: boolean;
   };
+
 
   const [alive, setAlive] = React.useState(profile.alive);
   // only players still in the game share their location
@@ -232,14 +228,6 @@ export function ErrorBoundary({ error }: { error: Error }) {
       <div className="mb-8 w-full flex justify-center">
         <p className="text-sm text-red-300">{error.message}</p>
       </div>
-    </div>
-  );
-}
-
-export function HydrateFallback() {
-  return (
-    <div className="w-screen h-screen flex flex-col items-center justify-center p-4 bg-slate-900">
-      <GotchaLoader />
     </div>
   );
 }

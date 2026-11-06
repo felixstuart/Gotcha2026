@@ -3,20 +3,33 @@ import { getAuth } from "firebase-admin/auth";
 import { Role } from "../../types";
 
 /**
- * Throws unless the caller's ID token has the `admin` custom claim.
- * Returns the admin's email.
+ * Who can play is decided by the roster (requireRegisteredSchoolUser in authorization.ts).
+ * Who is an admin is decided by the `admin` custom claim on their ID token, which
+ * syncRoleClaim keeps in step with the `role` in their roster profile.
+ */
+
+/** True if the caller's ID token has the `admin` custom claim */
+export function hasAdminClaim(request: CallableRequest): boolean {
+  return request.auth?.token.admin === true;
+}
+
+/**
+ * Throws unless the caller is a verified school account with the `admin` claim.
+ * Returns the admin's email. Needs no Firestore read, so admin-only functions stay cheap.
  *
  * The claim is set by `syncRoleClaim` (called from getProfile), so a newly
  * promoted admin needs to load their profile once before this passes.
  */
 export function requireAdmin(request: CallableRequest): string {
   const email = request.auth?.token.email;
-  if (!request.auth || !email) {
-    throw new HttpsError("unauthenticated", "User must be authenticated");
+  if (!request.auth || typeof email !== "string" ||
+      request.auth.token.email_verified !== true ||
+      !/^[^/\s@]+@milton\.edu$/.test(email)) {
+    throw new HttpsError("permission-denied", "A verified school account is required");
   }
 
-  if (request.auth.token.admin !== true) {
-    throw new HttpsError("permission-denied", "User must be admin to access other user's data");
+  if (!hasAdminClaim(request)) {
+    throw new HttpsError("permission-denied", "Admin access is required");
   }
 
   return email;

@@ -1,46 +1,39 @@
+import { requireRegisteredSchoolUser, requestedEmail } from "./authorization";
+import { hasAdminClaim } from "./auth";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { AdminIndexRow } from "../../types";
 import { getFirestore } from "firebase-admin/firestore";
-import { requireAdmin } from "./auth";
+import { lastWordsIndexPath } from "./getLastWords";
 import { ADMIN_INDEX_PATH, logAdminAction, toAdminIndexRow } from "./adminIndex";
 import { Chain } from "./chain";
 import { gamePhase, getSettings } from "./settings";
 
 export const tagOut = onCall(async (request) => {
-  if (!request.auth || !request.auth.token.email) {
-    throw new HttpsError("unauthenticated", "User must be authenticated");
-  }
-
+  const member = await requireRegisteredSchoolUser(request);
+  const isAdmin = hasAdminClaim(request);
+  const email = requestedEmail(request.data, member.email, isAdmin);
+  // requestedEmail only lets admins pick someone else, so this is an admin tagging a player out
+  const adminEmail = email !== member.email ? member.email : null;
   const db = getFirestore();
-  let email;
-  let adminEmail: string | null = null;
-
-  if (!request.data.email) {
-    email = request.auth.token.email;
-  } else {
-    // Make sure the requester is an admin
-    // if they are requesting to tag out someone else
-    adminEmail = requireAdmin(request);
-    email = request.data.email;
-  }
 
   // players can only tag themselves out while the game is running.
   // admins can still tag people out any time (e.g. to fix a mistake after it ends)
-  if (!adminEmail) {
+  if (!isAdmin) {
     const phase = gamePhase(await getSettings());
     if (phase === "before") throw new HttpsError("failed-precondition", "Gotcha hasn't started yet");
     if (phase === "over") throw new HttpsError("failed-precondition", "Gotcha is over");
   }
 
-  console.log(email);
-
   try {
     const result = await db.runTransaction(async (tx) => {
       const chain = new Chain(db, tx);
       const user = await chain.load(email);
+      if (user.role !== "player") {
+        throw new HttpsError("failed-precondition", "Only a living player can be tagged out");
+      }
 
-      // throws if they're already out (e.g. a double click), so nobody gets a tag twice.
-      // their chaser now chases their target
+      // throws if they're already out (e.g. a double click), so nobody gets a tag twice,
+      // or if the chain around them has changed. their chaser now chases their target
       const { chaserEmail, winner } = await chain.remove(email);
 
       const chaser = await chain.load(chaserEmail);
@@ -66,6 +59,8 @@ export const tagOut = onCall(async (request) => {
         });
       }
 
+      // A revived player can be tagged out again, replacing their old entry.
+      tx.delete(db.doc(lastWordsIndexPath));
       // creating this also triggers updateLeaderboard
       tx.set(db.doc(`lastWords/${email}`), {
         lw: "",
@@ -82,7 +77,7 @@ export const tagOut = onCall(async (request) => {
   } catch (err) {
     // keep useful errors (like "already out") instead of hiding them behind a generic one
     if (err instanceof HttpsError) throw err;
-    console.error("tagOut failed:", err);
+    console.error("Tag out transaction failed:", err);
     throw new HttpsError("unknown", "Tag out failed");
   }
 });

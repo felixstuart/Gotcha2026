@@ -7,7 +7,7 @@ import {
 } from "@react-router/dev/routes";
 
 export default [
-  index("./routes/home.tsx"),
+  index("./routes/landing.tsx"),
   ...prefix("app", [
     layout("../components/Layout.tsx", [
       route("profile", "routes/profile.tsx"),

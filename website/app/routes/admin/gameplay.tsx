@@ -1,5 +1,5 @@
 import type { Route } from "../../+types/root";
-import { auth, functions } from "../../../firebase";
+import { auth, functions, refreshAdminClaim } from "../../../firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { httpsCallable } from "firebase/functions";
 import { redirect } from "react-router";
@@ -18,23 +18,16 @@ export async function clientLoader() {
     return redirect("/");
   }
 
-  const getProfile = httpsCallable(functions, "getProfile");
-  // getProfile returns { profile, claimsChanged }
-  const adminProfileData = (await getProfile({})).data as {
-    profile?: Profile;
-    claimsChanged?: boolean;
-  } | null; // always pass an object
-  const adminProfileResult = adminProfileData?.profile;
+  const getProfile = httpsCallable<object, Profile | null>(functions, "getProfile");
+  const adminProfileResult = (await getProfile({})).data; // always pass an object
 
   if (adminProfileResult?.role != "admin") {
     return redirect("/app/profile");
   }
 
   // updateGameSettings checks the admin claim on our token,
-  // so refresh it if the server just set it
-  if (adminProfileData?.claimsChanged) {
-    await auth.currentUser?.getIdToken(true);
-  }
+  // so refresh it if getProfile just set it
+  await refreshAdminClaim(adminProfileResult);
 
   const getGameSettings = httpsCallable<unknown, GameSettings>(functions, "getGameSettings");
   const settings = (await getGameSettings({})).data;

@@ -6,18 +6,19 @@ export const ADMIN_INDEX_PATH = "adminIndex/main";
 
 /**
  * Turns a profile into its admin table row.
- * firestore rejects undefined values, so missing optional fields become null.
+ * firestore rejects undefined values, so anything missing gets a default
+ * (e.g. an admin's profile, or one added by hand, may only have a few fields).
  */
 export function toAdminIndexRow(profile: Profile): AdminIndexRow {
   return {
-    firstName: profile.firstName,
-    lastName: profile.lastName,
-    class: profile.class,
-    dayorboard: profile.dayorboard,
+    firstName: profile.firstName ?? "",
+    lastName: profile.lastName ?? "",
+    class: profile.class ?? "",
+    dayorboard: profile.dayorboard ?? "",
     role: profile.role,
-    alive: profile.alive,
-    tags: profile.tags,
-    chaser: profile.chaser,
+    alive: profile.alive ?? false,
+    tags: profile.tags ?? 0,
+    chaser: profile.chaser ?? "none",
     targetEmail: profile.target?.email ?? "",
     lastEditedBy: profile.lastEditedBy ?? null,
     lastEditedAt: profile.lastEditedAt ?? null,

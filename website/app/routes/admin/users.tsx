@@ -1,5 +1,5 @@
 import type { Route } from "../../+types/root";
-import { auth, functions } from "../../../firebase";
+import { auth, functions, refreshAdminClaim } from "../../../firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { httpsCallable } from "firebase/functions";
 import { Form, redirect } from "react-router";
@@ -12,7 +12,7 @@ import type {
 } from "../../../../types";
 import { TagOut } from "../../../components/TagOut";
 import { useSearchParams } from "react-router";
-import { AllCommunityModule } from "ag-grid-community";
+import { AllCommunityModule, type ColDef } from "ag-grid-community";
 import { AgGridProvider, AgGridReact } from "ag-grid-react";
 import { useMemo, useRef, useState } from "react";
 import type { CustomCellRendererProps } from "ag-grid-react";
@@ -29,23 +29,16 @@ export async function clientLoader({ request }: Route.ClientLoaderArgs) {
     return redirect("/");
   }
 
-  const getProfile = httpsCallable(functions, "getProfile");
-  // getProfile returns { profile, claimsChanged }
-  const adminProfileData = (await getProfile({})).data as {
-    profile?: Profile;
-    claimsChanged?: boolean;
-  } | null; // always pass an object
-  const adminProfileResult = adminProfileData?.profile;
+  const getProfile = httpsCallable<object, Profile | null>(functions, "getProfile");
+  const adminProfileResult = (await getProfile({})).data; // always pass an object
 
   if (adminProfileResult?.role != "admin") {
     return redirect("/app/profile");
   }
 
   // the admin-only calls below check the admin claim on our token,
-  // so refresh it if the server just set it
-  if (adminProfileData?.claimsChanged) {
-    await auth.currentUser?.getIdToken(true);
-  }
+  // so refresh it if getProfile just set it
+  await refreshAdminClaim(adminProfileResult);
 
   const getAdminIndex = httpsCallable<unknown, { index: AdminIndex }>(
     functions,
@@ -73,13 +66,16 @@ function toGridRow(email: string, player: AdminIndexRow) {
   };
 }
 
+type GridRow = ReturnType<typeof toGridRow>;
+
 export default function UserPanel({ loaderData }: Route.ComponentProps) {
   const { adminProfile, adminIndex } = loaderData as unknown as {
     adminProfile: Profile | null;
     adminIndex: AdminIndex | null;
   };
 
-  const [colDefs, setColDefs] = useState([
+  // typed so each column's `field` must be a real key of GridRow
+  const [colDefs, setColDefs] = useState<ColDef<GridRow>[]>([
     { field: "firstName", headerName: "First Name" },
     { field: "lastName", headerName: "Last Name" },
     // the email is the player's id, so it can't be edited
@@ -140,7 +136,7 @@ export default function UserPanel({ loaderData }: Route.ComponentProps) {
     "getAdminIndex",
   );
 
-  const gridRef = useRef<AgGridReact<ReturnType<typeof toGridRow>>>(null);
+  const gridRef = useRef<AgGridReact<GridRow>>(null);
 
   // swaps in the rows the server sent back, so the table matches without refetching
   const patchRows = (rows: Record<string, AdminIndexRow>) => {

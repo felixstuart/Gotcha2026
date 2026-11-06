@@ -29,10 +29,25 @@ export const auth = getAuth(app);
 export const functions = getFunctions(app, "us-central1");
 
 if (import.meta.env.DEV) {
+  connectAuthEmulator(auth, "http://localhost:9099", { disableWarnings: true });
   connectFunctionsEmulator(functions, "localhost", 5001);
 }
 
 export const googleProvider = GoogleAuthProvider;
+
+/**
+ * getProfile keeps the `admin` claim on your ID token in step with your roster role.
+ * If the token disagrees with the role it returned, the server has just changed the claim,
+ * so fetch a fresh token before calling any admin-only function.
+ */
+export async function refreshAdminClaim(profile: { role: string } | null) {
+  const user = auth.currentUser;
+  if (!user || !profile) return;
+  const { claims } = await user.getIdTokenResult();
+  if ((claims.admin === true) !== (profile.role === "admin")) {
+    await user.getIdToken(true);
+  }
+}
 
 // connectFirestoreEmulator(db, "localhost", 8080);
 // connectAuthEmulator(auth, "http://localhost:9099");
