@@ -76,3 +76,12 @@ google-services.json
 
 # Expo mobile app (kept local for now, see mobile/Gotcha/README.md)
 mobile/
+
+# Local editor/agent config
+.claude/
+
+# Frontend build output
+website/build/
+
+# macOS metadata
+.DS_Store
