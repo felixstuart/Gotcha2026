@@ -15,3 +15,4 @@ export { syncAdminIndex } from "./syncAdminIndex";
 export { adminUpdateProfile } from "./adminUpdateProfile";
 export { getAdminLog } from "./getAdminLog";
 export { getGameSettings, updateGameSettings } from "./settings";
+export { checkInSweep } from "./checkInSweep";

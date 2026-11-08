@@ -22,6 +22,7 @@ export function toAdminIndexRow(profile: Profile): AdminIndexRow {
     targetEmail: profile.target?.email ?? "",
     lastEditedBy: profile.lastEditedBy ?? null,
     lastEditedAt: profile.lastEditedAt ?? null,
+    checkedInAt: profile.checkedInAt ?? null,
   };
 }
 
