@@ -4,9 +4,11 @@ import { requireAdmin } from "./auth";
 import { requireRegisteredSchoolUser } from "./authorization";
 import { db } from "./firebase";
 import { logAdminAction } from "./adminIndex";
+import { BUILDING_NAMES } from "./buildings";
+import { pastDeadline, schoolDay } from "./schoolTime";
 
 // stored in config/game
-const settingsDoc = () => db.collection("config").doc("game");
+export const settingsDoc = () => db.collection("config").doc("game");
 
 /**
  * How long each function instance trusts its copy of the settings.
@@ -23,6 +25,12 @@ export const DEFAULT_SETTINGS: GameSettings = {
   endsAt: null,
   revengeEnabled: true,
   locationEnabled: true,
+  seeTargetLocation: true,
+  shareToSeeTargetLocation: false,
+  checkInEnabled: false,
+  checkInDeadline: 20 * 60, // 8:00 PM
+  checkInBuilding: null,
+  lastCheckInSweepDay: null,
   updatedAt: null,
   updatedBy: null,
 };
@@ -30,6 +38,16 @@ export const DEFAULT_SETTINGS: GameSettings = {
 let cached: { settings: GameSettings; fetchedAt: number } | null = null;
 // shared by calls that arrive while a read is already running, so they don't each read
 let inFlight: Promise<GameSettings> | null = null;
+
+/** Settings as stored, with defaults for anything missing (so older docs keep working when new settings are added) */
+export function withDefaults(data: Partial<GameSettings> | undefined): GameSettings {
+  return { ...DEFAULT_SETTINGS, ...data };
+}
+
+/** Lets the check-in sweep update this instance's copy after it saves, like updateGameSettings does */
+export function setCachedSettings(settings: GameSettings) {
+  cached = { settings, fetchedAt: Date.now() };
+}
 
 /** The current settings, from this instance's cache when it's fresh enough */
 export async function getSettings(): Promise<GameSettings> {
@@ -41,8 +59,7 @@ export async function getSettings(): Promise<GameSettings> {
   inFlight = (async () => {
     try {
       const snap = await settingsDoc().get();
-      // fill in anything missing, so older docs keep working when new settings are added
-      const settings = { ...DEFAULT_SETTINGS, ...(snap.data() as Partial<GameSettings> | undefined) };
+      const settings = withDefaults(snap.data() as Partial<GameSettings> | undefined);
       cached = { settings, fetchedAt: Date.now() };
       return settings;
     } finally {
@@ -76,7 +93,10 @@ function parseSettingsUpdate(raw: unknown): Partial<GameSettings> {
     update[field] = value as number | null;
   }
 
-  for (const field of ["revengeEnabled", "locationEnabled"] as const) {
+  const booleans = [
+    "revengeEnabled", "locationEnabled", "seeTargetLocation", "shareToSeeTargetLocation", "checkInEnabled",
+  ] as const;
+  for (const field of booleans) {
     if (input[field] === undefined) continue;
     if (typeof input[field] !== "boolean") {
       throw new HttpsError("invalid-argument", `${field} must be true or false`);
@@ -84,6 +104,23 @@ function parseSettingsUpdate(raw: unknown): Partial<GameSettings> {
     update[field] = input[field] as boolean;
   }
 
+  if (input.checkInDeadline !== undefined) {
+    const value = input.checkInDeadline;
+    if (typeof value !== "number" || !Number.isInteger(value) || value < 0 || value >= 24 * 60) {
+      throw new HttpsError("invalid-argument", "checkInDeadline must be minutes after midnight (0 to 1439)");
+    }
+    update.checkInDeadline = value;
+  }
+
+  if (input.checkInBuilding !== undefined) {
+    const value = input.checkInBuilding;
+    if (value !== null && (typeof value !== "string" || !BUILDING_NAMES.includes(value))) {
+      throw new HttpsError("invalid-argument", "checkInBuilding must be a building name, or null for any building");
+    }
+    update.checkInBuilding = value;
+  }
+
+  // lastCheckInSweepDay is the sweep's, so it's dropped like anything else that isn't a setting
   return update;
 }
 
@@ -104,13 +141,22 @@ export const updateGameSettings = onCall(async (request): Promise<GameSettings> 
 
   const settings = await db.runTransaction(async (tx) => {
     const ref = settingsDoc();
-    const current = { ...DEFAULT_SETTINGS, ...((await tx.get(ref)).data() as Partial<GameSettings> | undefined) };
+    const current = withDefaults((await tx.get(ref)).data() as Partial<GameSettings> | undefined);
+    const now = Date.now();
     const next: GameSettings = {
       ...current,
       ...update,
-      updatedAt: Date.now(),
+      updatedAt: now,
       updatedBy: adminEmail,
     };
+
+    // turning check-in on (or moving the deadline) after today's deadline has passed shouldn't
+    // take out everyone who hadn't checked in yet, so today counts as already swept
+    const checkInStarting = next.checkInEnabled &&
+      (!current.checkInEnabled || next.checkInDeadline !== current.checkInDeadline);
+    if (checkInStarting && pastDeadline(next.checkInDeadline, now)) {
+      next.lastCheckInSweepDay = schoolDay(now).dayKey;
+    }
 
     if (next.startsAt !== null && next.endsAt !== null && next.startsAt >= next.endsAt) {
       throw new HttpsError("invalid-argument", "The game has to end after it starts");
@@ -131,6 +177,6 @@ export const updateGameSettings = onCall(async (request): Promise<GameSettings> 
   });
 
   // this instance sees the change straight away; others pick it up within CACHE_TTL_MS
-  cached = { settings, fetchedAt: Date.now() };
+  setCachedSettings(settings);
   return settings;
 });

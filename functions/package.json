@@ -1,7 +1,9 @@
 {
   "name": "functions",
   "scripts": {
+    "prelint": "node ../scripts/generate-buildings.mjs",
     "lint": "eslint --ext .js,.ts .",
+    "prebuild": "node ../scripts/generate-buildings.mjs",
     "build": "tsc",
     "build:watch": "tsc --watch",
     "serve": "npm run build && firebase emulators:start --only functions",

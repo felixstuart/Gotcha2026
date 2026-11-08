@@ -1,33 +1,13 @@
 import { requireRegisteredSchoolUser, requestedEmail } from "./authorization";
 import { hasAdminClaim, syncRoleClaim } from "./auth";
 import { CallableRequest, HttpsError, onCall } from "firebase-functions/v2/https";
-import { Profile, Role } from "../../types";
-import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
-import { point } from "@turf/helpers";
+import { GameSettings, Profile, Role } from "../../types";
 import { db } from "./firebase";
 import { getSettings } from "./settings";
-import type { Feature, FeatureCollection, MultiPolygon, Polygon } from "geojson"; // Uses (longitude, latitude) be careful
+import { buildingAt, Location } from "./buildings";
+import { checkedInToday } from "./schoolTime";
 
-export type Location = [latitude: number, longitude: number];
-
-/**
- * The named building footprints players can be in.
- * They live in config/buildings, written by seed.ts from geofence/buildings.geojson
- * (name them with geofence/labeler.html). Firestore can't store nested arrays,
- * so the FeatureCollection is saved as a JSON string.
- */
-async function loadBuildings(): Promise<Feature<Polygon | MultiPolygon>[]> {
-    const buildingsDoc = await db.collection("config").doc("buildings").get();
-    const geojson = buildingsDoc.data()?.geojson;
-    if (!geojson) return [];
-
-    // footprints nobody has named yet aren't geofenced
-    return (JSON.parse(geojson) as FeatureCollection).features.filter(
-        (f): f is Feature<Polygon | MultiPolygon> =>
-            !!f.properties?.name &&
-            (f.geometry?.type === "Polygon" || f.geometry?.type === "MultiPolygon"),
-    );
-}
+export type { Location };
 
 /**
  * Updates target.location for the chaser
@@ -35,29 +15,58 @@ async function loadBuildings(): Promise<Feature<Polygon | MultiPolygon>[]> {
  * (improves efficiency since Gotcha is read, not write heavy)
  * @param targetProfile
  * @param targetLocation
+ * @returns the building they're in, or null if they're in none
  */
-export const updateChaserTargetLocation = async (targetProfile: Profile, targetLocation: Location): Promise<void> => {
-    const buildings = await loadBuildings();
-
-    const building = buildings.find((building) => (
-        booleanPointInPolygon(
-            point([targetLocation[1], targetLocation[0]]),
-            building,
-        )
-    ));
-
-    if (building) {
-        const buildingName = building.properties?.name || "Unknown Location"
-        targetProfile.location = buildingName;
-
-        if (targetProfile.chaser && targetProfile.chaser !== "none") {
-            await db.collection("data").doc(targetProfile.chaser).update({
-              "target.location" : buildingName
-            })
-        }
-    } else {
+export const updateChaserTargetLocation = async (
+    targetProfile: Profile,
+    targetLocation: Location,
+    building = buildingAt(targetLocation),
+): Promise<string | null> => {
+    if (!building) {
         console.log("no building found"); // todo, maybe fix this silent failure
+        return null;
     }
+
+    targetProfile.location = building;
+    if (targetProfile.chaser && targetProfile.chaser !== "none") {
+        await db.collection("data").doc(targetProfile.chaser).update({
+          "target.location": building,
+        });
+    }
+    return building;
+};
+
+/**
+ * Checks a player in if they're in the check-in building (or any building) and haven't
+ * checked in yet today. Costs one write, at most once per player per school day.
+ * Updates the passed profile so the response shows it.
+ * @returns whether this call checked them in
+ */
+export const checkIn = async (
+    email: string,
+    profile: Profile,
+    building: string | null,
+    settings: GameSettings,
+    now = Date.now(),
+): Promise<boolean> => {
+    if (!settings.checkInEnabled || !building) return false;
+    if (settings.checkInBuilding !== null && settings.checkInBuilding !== building) return false;
+    if (checkedInToday(profile.checkedInAt, now)) return false; // already done, so no write
+
+    await db.collection("data").doc(email).update({ checkedInAt: now });
+    profile.checkedInAt = now;
+    return true;
+};
+
+/**
+ * Whether a player may see their target's building in this response.
+ * @param settings
+ * @param sharedLocation whether this call came with their own location
+ */
+export function canSeeTargetLocation(settings: GameSettings, sharedLocation: boolean): boolean {
+    // it's a location feature, so switching location off hides it too
+    if (!settings.locationEnabled || !settings.seeTargetLocation) return false;
+    return !settings.shareToSeeTargetLocation || sharedLocation;
 }
 
 /**
@@ -100,7 +109,8 @@ export const getProfile = onCall(async (request): Promise<Profile | null> => {
     const profile = ownProfile ? member.profile : await getUserProfileByEmail(email);
 
     const location = request.data?.location;
-    if (location !== undefined && location !== null) {
+    const sharedLocation = location !== undefined && location !== null;
+    if (sharedLocation) {
         if (!Array.isArray(location) || location.length !== 2 ||
             !location.every((v: unknown) => typeof v === "number" && Number.isFinite(v)) ||
             Math.abs(location[0]) > 90 || Math.abs(location[1]) > 180) {
@@ -109,15 +119,36 @@ export const getProfile = onCall(async (request): Promise<Profile | null> => {
         if (!ownProfile) {
             throw new HttpsError("permission-denied", "Only players make updates");
         }
-        // admins can switch location off in the game settings
-        if (profile && profile.alive && profile.role === "player" &&
-            (await getSettings()).locationEnabled) {
-            await updateChaserTargetLocation(profile, location as Location);
-        }
+    }
+
+    // cached, so this almost never costs a read
+    const settings = await getSettings();
+
+    if (sharedLocation && profile && profile.alive && profile.role === "player" &&
+        (settings.locationEnabled || settings.checkInEnabled)) {
+        // the building is worked out once, in memory, and shared by both features
+        const building = buildingAt(location as Location);
+        if (building) profile.location = building;
+
+        // admins can switch location off in the game settings.
+        // check-in still works without it (it only needs this call's location)
+        await Promise.all([
+            settings.locationEnabled ?
+                updateChaserTargetLocation(profile, location as Location, building) :
+                null,
+            checkIn(email, profile, building, settings),
+        ]);
     }
 
     if (ownProfile) {
         await trySyncRoleClaim(request, member.profile.role);
+    }
+
+    // the building stays saved either way, it's only left out of what players get back.
+    // admins always see it
+    if (profile?.target?.location !== undefined && !hasAdminClaim(request) &&
+        !canSeeTargetLocation(settings, sharedLocation)) {
+        return { ...profile, target: { ...profile.target, location: undefined } };
     }
 
     return profile;

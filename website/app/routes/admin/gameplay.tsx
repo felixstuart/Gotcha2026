@@ -5,6 +5,8 @@ import { httpsCallable } from "firebase/functions";
 import { redirect } from "react-router";
 import type { GameSettings, Profile } from "../../../../types";
 import { useEffect, useState } from "react";
+// compiled in from geofence/buildings.geojson by scripts/generate-buildings.mjs
+import { BUILDING_NAMES } from "../../generated/buildings";
 
 export async function clientLoader() {
   const user = await new Promise((resolve) => {
@@ -48,6 +50,19 @@ function fromLocalInput(value: string) {
   return value ? new Date(value).getTime() : null;
 }
 
+// <input type="time"> uses "HH:MM". the deadline is stored as minutes after midnight
+function toTimeInput(minutes: number) {
+  return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+}
+
+function fromTimeInput(value: string) {
+  const [hours, minutes] = value.split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
+// a select can't hold null, so "" stands for any building
+const ANY_BUILDING = "";
+
 // the same countdown format as the leaderboard
 function formatCountdown(diff: number) {
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -85,6 +100,30 @@ function Countdown({ startsAt, endsAt }: Pick<GameSettings, "startsAt" | "endsAt
   );
 }
 
+function FeatureRow({
+  title,
+  description,
+  on,
+  disabled,
+  onClick,
+}: {
+  title: string;
+  description: string;
+  on: boolean;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <div className="flex justify-between items-center gap-4 p-3 bg-slate-700 rounded-lg">
+      <div>
+        <h3 className="font-medium">{title}</h3>
+        <p className="text-sm text-slate-300">{description}</p>
+      </div>
+      <OnOffButton on={on} disabled={disabled} onClick={onClick} />
+    </div>
+  );
+}
+
 function OnOffButton({ on, disabled, onClick }: { on: boolean; disabled: boolean; onClick: () => void }) {
   return (
     <button
@@ -106,9 +145,13 @@ export default function GameplayPanel({ loaderData }: Route.ComponentProps) {
   const [settings, setSettings] = useState(initialSettings);
   const [startsAt, setStartsAt] = useState(initialSettings.startsAt);
   const [endsAt, setEndsAt] = useState(initialSettings.endsAt);
+  const [checkInDeadline, setCheckInDeadline] = useState(initialSettings.checkInDeadline);
+  const [checkInBuilding, setCheckInBuilding] = useState(initialSettings.checkInBuilding);
   const [saving, setSaving] = useState(false);
 
   const scheduleChanged = startsAt !== settings.startsAt || endsAt !== settings.endsAt;
+  const checkInChanged =
+    checkInDeadline !== settings.checkInDeadline || checkInBuilding !== settings.checkInBuilding;
   const scheduleInvalid = startsAt !== null && endsAt !== null && startsAt >= endsAt;
 
   // saves some settings, and keeps the page in step with what the server saved
@@ -123,6 +166,8 @@ export default function GameplayPanel({ loaderData }: Route.ComponentProps) {
       setSettings(saved);
       setStartsAt(saved.startsAt);
       setEndsAt(saved.endsAt);
+      setCheckInDeadline(saved.checkInDeadline);
+      setCheckInBuilding(saved.checkInBuilding);
     } catch (err) {
       // the server's message says what went wrong
       console.error(err);
@@ -179,32 +224,86 @@ export default function GameplayPanel({ loaderData }: Route.ComponentProps) {
 
         <div className="bg-slate-800 p-4 rounded-lg space-y-2">
           <h2 className="font-bold text-xl">Features</h2>
-          <div className="flex justify-between items-center gap-4 p-3 bg-slate-700 rounded-lg">
-            <div>
-              <h3 className="font-medium">Revenge loop</h3>
-              <p className="text-sm text-slate-300">
-                When a player is tagged out, everyone they tagged comes back.
+          <FeatureRow
+            title="Revenge loop"
+            description="When a player is tagged out, everyone they tagged comes back."
+            on={settings.revengeEnabled}
+            disabled={saving}
+            onClick={() => save({ revengeEnabled: !settings.revengeEnabled })}
+          />
+          <FeatureRow
+            title="Location"
+            description="Phones report which building players are in."
+            on={settings.locationEnabled}
+            disabled={saving}
+            onClick={() => save({ locationEnabled: !settings.locationEnabled })}
+          />
+          <FeatureRow
+            title="See target location"
+            description="Chasers see which building their target is in. When off, it's still saved but never sent to players."
+            on={settings.seeTargetLocation}
+            disabled={saving}
+            onClick={() => save({ seeTargetLocation: !settings.seeTargetLocation })}
+          />
+          <FeatureRow
+            title="Share to see"
+            description="Players only see their target's location while they're sharing their own."
+            on={settings.shareToSeeTargetLocation}
+            disabled={saving}
+            onClick={() => save({ shareToSeeTargetLocation: !settings.shareToSeeTargetLocation })}
+          />
+        </div>
+
+        <div className="bg-slate-800 p-4 rounded-lg space-y-2">
+          <FeatureRow
+            title="Daily check-in"
+            description="Every school day, alive players have to open Gotcha in the check-in building before the deadline, or they're taken out of the game (nobody gets a tag)."
+            on={settings.checkInEnabled}
+            disabled={saving}
+            onClick={() => save({ checkInEnabled: !settings.checkInEnabled })}
+          />
+          {settings.checkInEnabled && (
+            <>
+              <div className="flex justify-between items-center p-3 bg-slate-700 rounded-lg">
+                <h3 className="font-medium">Deadline (school time)</h3>
+                <input
+                  type="time"
+                  value={toTimeInput(checkInDeadline)}
+                  onChange={(e) => e.target.value && setCheckInDeadline(fromTimeInput(e.target.value))}
+                  className="bg-slate-600 rounded px-2 py-1 text-white [color-scheme:dark]"
+                />
+              </div>
+              <div className="flex justify-between items-center p-3 bg-slate-700 rounded-lg">
+                <h3 className="font-medium">Building</h3>
+                <select
+                  value={checkInBuilding ?? ANY_BUILDING}
+                  onChange={(e) => setCheckInBuilding(e.target.value === ANY_BUILDING ? null : e.target.value)}
+                  className="bg-slate-600 rounded px-2 py-1 text-white"
+                >
+                  <option value={ANY_BUILDING}>Any building</option>
+                  {BUILDING_NAMES.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {checkInChanged && (
+                <div className="flex justify-end pt-1">
+                  <button
+                    className="px-3 py-1 rounded bg-slate-700 text-white text-sm hover:bg-slate-600 disabled:opacity-50"
+                    onClick={() => save({ checkInDeadline, checkInBuilding })}
+                    disabled={saving}
+                  >
+                    {saving ? "Saving..." : "Save check-in"}
+                  </button>
+                </div>
+              )}
+              <p className="text-xs text-slate-400">
+                Turning this on or moving the deadline after today's deadline has passed starts with tomorrow.
               </p>
-            </div>
-            <OnOffButton
-              on={settings.revengeEnabled}
-              disabled={saving}
-              onClick={() => save({ revengeEnabled: !settings.revengeEnabled })}
-            />
-          </div>
-          <div className="flex justify-between items-center gap-4 p-3 bg-slate-700 rounded-lg">
-            <div>
-              <h3 className="font-medium">Location</h3>
-              <p className="text-sm text-slate-300">
-                Chasers see which building their target is in.
-              </p>
-            </div>
-            <OnOffButton
-              on={settings.locationEnabled}
-              disabled={saving}
-              onClick={() => save({ locationEnabled: !settings.locationEnabled })}
-            />
-          </div>
+            </>
+          )}
         </div>
 
         <p className="text-sm text-slate-400 text-center">

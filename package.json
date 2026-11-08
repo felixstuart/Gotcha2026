@@ -3,7 +3,8 @@
     "gen:clients": "node scripts/generate-clients.mjs",
     "check:clients": "node scripts/generate-clients.mjs --check",
     "load:people": "node load-people.mjs",
-    "test:import": "node --test load-people.test.mjs"
+    "test:import": "node --test load-people.test.mjs",
+    "gen:buildings": "node scripts/generate-buildings.mjs"
   },
   "dependencies": {
     "firebase-admin": "^13.6.0",
