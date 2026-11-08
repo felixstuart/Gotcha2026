@@ -92,3 +92,7 @@ website/build/
 # Private initial player list
 /initial emails
 /initial emails.txt
+
+# Buildings compiled from geofence/buildings.geojson (scripts/generate-buildings.mjs)
+/functions/src/generated/
+/website/app/generated/

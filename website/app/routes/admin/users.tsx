@@ -63,6 +63,7 @@ function toGridRow(email: string, player: AdminIndexRow) {
     chaser: player.chaser,
     alive: player.alive,
     tags: player.tags,
+    checkedInAt: player.checkedInAt,
   };
 }
 
@@ -93,6 +94,21 @@ export default function UserPanel({ loaderData }: Route.ComponentProps) {
       valueFormatter: (params: { value: string }) => params.value || "none",
     },
     { field: "tags", headerName: "Tags" },
+    // set by the player's phone, so admins can't edit it
+    {
+      field: "checkedInAt",
+      headerName: "Checked In",
+      editable: false,
+      valueFormatter: (params: { value: number | null }) =>
+        params.value === null || params.value === undefined
+          ? "never"
+          : new Date(params.value).toLocaleString(undefined, {
+              month: "numeric",
+              day: "numeric",
+              hour: "numeric",
+              minute: "2-digit",
+            }),
+    },
     {
       headerName: "Actions",
       cellRenderer: ActionsCell,

@@ -8,33 +8,13 @@ import {
     Location 
 } from './getProfile';
 import firebaseFunctionsTest from "firebase-functions-test";
-import { db } from "./firebase";
+import { pointIn } from "./testBuildings";
 
 const testEnv = firebaseFunctionsTest();
 
-// small test buildings (lat, lng corners), stored the way seed.ts stores the real ones:
-// a GeoJSON FeatureCollection saved as a string in config/buildings
-const testBuildings = {
-    "Stuart Empire": [[42.25820, -71.06620], [42.25820, -71.06590], [42.25798, -71.06590], [42.25798, -71.06620]],
-    "FMC": [[42.25848, -71.06615], [42.25848, -71.06585], [42.25825, -71.06585], [42.25825, -71.06615]],
-    "Quad": [[42.25815, -71.06580], [42.25815, -71.06540], [42.25785, -71.06540], [42.25785, -71.06580]],
-};
-
 beforeAll(async () => {
     await seedProfiles();
-    const features = Object.entries(testBuildings).map(([name, corners]) => {
-        const ring = corners.map(([lat, lng]) => [lng, lat]); // GeoJSON is (longitude, latitude)
-        return {
-            type: "Feature",
-            properties: { name },
-            geometry: { type: "Polygon", coordinates: [[...ring, ring[0]]] },
-        };
-    });
-    await db.collection("config").doc("buildings").set({
-        geojson: JSON.stringify({ type: "FeatureCollection", features }),
-    });
 });
-
 
 describe("getUserProfileByEmail", () => {
     it("gets existing user's profile", async () => {
@@ -66,11 +46,10 @@ describe("getUserProfileByEmail", () => {
 });
 
 describe("updateChaserTargetLocation", () => {
+    // the real buildings, compiled in from geofence/buildings.geojson
     const testPoints = {
-        stuartEmpire: [42.25809, -71.06605],
-        fmc: [42.25836, -71.06600],
-        quad: [42.25800, -71.06560],
-        outside: [42.25900, -71.06700],
+        science: pointIn("Science Building"),
+        outside: [42.30000, -71.10000],
     };
 
     let jordanProfile: Profile;
@@ -81,14 +60,14 @@ describe("updateChaserTargetLocation", () => {
     });
 
     it("updates chaser target location when in building", async () => {
-        const location = testPoints.stuartEmpire as Location;
+        const location = testPoints.science as Location;
         expect(jordanProfile.chaser).toBe("alex_chen@milton.edu");
 
         await updateChaserTargetLocation(jordanProfile, location);
         const chaserProfile = await getUserProfileByEmail("alex_chen@milton.edu");
         const targetLocationForChaser = chaserProfile?.target.location;
 
-        expect(targetLocationForChaser).toBe("Stuart Empire");
+        expect(targetLocationForChaser).toBe("Science Building");
     });
 
     it("doesn't change location when user is outside building", async () => {
@@ -121,7 +100,7 @@ describe("getProfile", () => {
         const result = await wrappedGetProfile({ data: { email }, auth } as any);
         expect(result?.firstName).toBe("Alex");
         await expect(wrappedGetProfile({
-            data: { email, location: [42.25809, -71.06605] }, auth,
+            data: { email, location: pointIn("Science Building") }, auth,
         } as any)).rejects.toMatchObject({ code: "permission-denied" });
         const chaserAfter = await getUserProfileByEmail("felix_stuart27@milton.edu");
         expect(chaserAfter?.target.location).toBe(chaserBefore?.target.location);

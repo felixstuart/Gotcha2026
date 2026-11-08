@@ -1,6 +1,4 @@
 import * as admin from "firebase-admin";
-import { readFileSync } from "fs";
-import { join } from "path";
 import { db } from "./functions/src/firebase";
 import { type Profile, type Leaderboard, type Role } from "./types";
 
@@ -281,25 +279,9 @@ export async function seedLeaderboard() {
   console.log("✅ Seeded leaderboard and 10 users successfully");
 }
 
-export async function seedBuildings() {
-  if (!process.env.FIRESTORE_EMULATOR_HOST) {
-    throw new Error("Seeding requires FIRESTORE_EMULATOR_HOST; refusing production writes");
-  }
-  console.log("📝 Seeding building geofences...");
-
-  // Milton building footprints from OpenStreetMap. name them with geofence/labeler.html
-  const geojson = readFileSync(join(__dirname, "geofence", "buildings.geojson"), "utf8");
-  const named = JSON.parse(geojson).features.filter(
-    (f: { properties?: { name?: string } }) => f.properties?.name,
-  ).length;
-
-  // firestore doesn't allow nested arrays, so the FeatureCollection is stored as a string
-  await db.collection("config").doc("buildings").set({ geojson });
-  console.log(`✅ Seeded buildings (${named} named and geofenced)`);
-}
 
 if (require.main === module) { // Ensures seed doesn't exit when used in testing
-    Promise.all([seedProfiles(), seedLeaderboard(), seedBuildings()])
+    Promise.all([seedProfiles(), seedLeaderboard()])
     .then(() => {
         console.log("✨ All seeding completed");
         process.exit(0);

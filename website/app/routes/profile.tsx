@@ -13,7 +13,9 @@ import type {
 } from "../../../types";
 import { TagOut } from "../../components/TagOut";
 import React from "react";
-import LocationService from "../../components/LocationService";
+import { Spoiler } from "spoiled";
+import { CHECKED_IN_RING, CheckInBadge, VerifiedCheck } from "../../components/CheckInBadge";
+import { signOut } from "firebase/auth";
 
 export async function clientLoader() {
   const user = await new Promise((resolve) => {
@@ -56,22 +58,47 @@ export async function clientLoader() {
     profile,
     user: user,
     lastWords: lastWordsResult.data,
-    // only ask for location while admins have the location feature switched on
-    locationEnabled: settingsResult.data.locationEnabled,
+    settings: settingsResult.data,
   };
 }
 
+// check-in days are school days, in the school's time zone (the same as functions/src/schoolTime.ts)
+const schoolDayFormat = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "America/New_York",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+function checkedInToday(checkedInAt: number | undefined) {
+  return checkedInAt !== undefined && schoolDayFormat.format(checkedInAt) === schoolDayFormat.format(Date.now());
+}
+
+// e.g. 1200 -> "8:00 PM"
+function formatDeadline(minutes: number) {
+  const hours = Math.floor(minutes / 60);
+  return `${hours % 12 || 12}:${String(minutes % 60).padStart(2, "0")} ${hours < 12 ? "AM" : "PM"}`;
+}
+
+type SharingState = "idle" | "locating" | "shared" | "failed";
+
 /**
  * Finds the player's location after the page has loaded, then sends it to getProfile,
- * which works out the building and shows it to their chaser.
- * Returns the building name once it's known (or null if there isn't one).
+ * which works out the building, shows it to their chaser, and checks them in.
+ * The same call is the only one that can return their target's building when admins
+ * have "share to see" on, so nothing extra is fetched for it.
+ * Returns the profile from that call (null until it arrives) and `retry` to share again,
+ * e.g. when they've walked into the check-in building.
  */
 function useSharedLocation(enabled: boolean) {
-  const [building, setBuilding] = React.useState<string | null>(null);
+  const [shared, setShared] = React.useState<Profile | null>(null);
+  const [state, setState] = React.useState<SharingState>("idle");
+  const [attempt, setAttempt] = React.useState(0);
 
   React.useEffect(() => {
     if (!enabled) return;
     if (!navigator.geolocation) {
+      setState("failed");
       alert(
         "Location isn't supported by your browser. Certain features might be unavailable.",
       );
@@ -79,6 +106,7 @@ function useSharedLocation(enabled: boolean) {
     }
 
     let cancelled = false;
+    setState("locating");
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         try {
@@ -86,37 +114,64 @@ function useSharedLocation(enabled: boolean) {
           const result = await getProfile({
             location: [position.coords.latitude, position.coords.longitude],
           });
-          const location = result.data?.location;
-          if (!cancelled && location) setBuilding(location);
+          if (cancelled) return;
+          setShared(result.data);
+          setState("shared");
         } catch (err) {
           // sharing location is best-effort, so the page keeps working without it
           console.error("location update failed:", err);
+          if (!cancelled) setState("failed");
         }
       },
-      () => {}, // denied or unavailable: carry on without location
-      { timeout: 10000, maximumAge: 60000 },
+      () => {
+        if (!cancelled) setState("failed"); // denied or unavailable: carry on without location
+      },
+      // a retry should use a fresh position, since they've probably moved
+      { timeout: 10000, maximumAge: attempt === 0 ? 60000 : 0 },
     );
     return () => {
       cancelled = true;
     };
-  }, [enabled]);
+  }, [enabled, attempt]);
 
-  return building;
+  const retry = React.useCallback(() => setAttempt((n) => n + 1), []);
+  return { shared, state, retry };
 }
 
 export default function Profile({ loaderData }: Route.ComponentProps) {
-  const { profile, user, lastWords, locationEnabled } = loaderData as unknown as {
-    profile: any;
+  const { profile: loadedProfile, user, lastWords, settings } = loaderData as unknown as {
+    profile: Profile;
     user: any;
     lastWords: ClientLastWordsResponse;
-    locationEnabled: boolean;
+    settings: GameSettings;
   };
 
 
-  const [alive, setAlive] = React.useState(profile.alive);
-  // only players still in the game share their location
-  const building = useSharedLocation(locationEnabled && profile.alive && profile.role === "player");
+  const [alive, setAlive] = React.useState(loadedProfile.alive);
+  // only players still in the game share their location, and only when something uses it
+  // the target's building is a location feature, so it's all off when location is off
+  const seeTargetLocation = settings.locationEnabled && settings.seeTargetLocation;
+  const hiddenUntilShared = seeTargetLocation && settings.shareToSeeTargetLocation;
+  const { shared, state: sharing, retry } = useSharedLocation(
+    loadedProfile.alive && loadedProfile.role === "player" &&
+      (settings.locationEnabled || settings.checkInEnabled),
+  );
+  // the profile from the location call is newer (building, check-in, target's building)
+  const profile = shared ?? loadedProfile;
+
+  // null keeps it under the sand. with "share to see" on, the server only sends it back once we've shared
+  const targetLocation = profile.target.location ?? null;
+  const showTargetLocation =
+    seeTargetLocation && (hiddenUntilShared ? sharing !== "shared" || targetLocation !== null : targetLocation !== null);
+  const isCheckedIn = checkedInToday(profile.checkedInAt);
   const navigate = useNavigate();
+  const [photoFailed, setPhotoFailed] = React.useState(false);
+  const showCheckedIn = alive && settings.checkInEnabled && isCheckedIn;
+
+  const signUserOut = async () => {
+    await signOut(auth);
+    window.location.reload();
+  };
 
   const tagOut = async () => {
     try {
@@ -144,14 +199,54 @@ export default function Profile({ loaderData }: Route.ComponentProps) {
           {/* set of cards */}
           <h1 className="font-bold text-xl">Profile</h1>
           {/* name and profile image card */}
-          <div className="bg-slate-800 p-4 rounded-lg m-4 text-center items-center flex flex-col space-y-4">
-            <img src={user.photoURL} className="rounded-full" />
-            <h2 className="text-2xl font-bold">
+          <div
+            className={`bg-slate-800 p-4 rounded-lg m-4 text-center items-center flex flex-col space-y-2 ${showCheckedIn ? CHECKED_IN_RING : ""}`}
+          >
+            {user.photoURL && !photoFailed ? (
+              <img
+                src={user.photoURL}
+                alt=""
+                referrerPolicy="no-referrer"
+                className="rounded-full w-24 h-24 object-cover"
+                onError={() => setPhotoFailed(true)}
+              />
+            ) : (
+              // no Google photo (or it didn't load), so show their initials
+              <div className="rounded-full w-24 h-24 bg-slate-600 flex items-center justify-center text-3xl font-bold text-slate-200">
+                {profile.firstName?.[0]}
+                {profile.lastName?.[0]}
+              </div>
+            )}
+            <h2 className="text-2xl font-bold pt-2">
               {profile.firstName} {profile.lastName}
+              {showCheckedIn && (
+                <VerifiedCheck
+                  tooltip={`You're checked in for today. Check in again tomorrow at ${settings.checkInBuilding ?? "any building"} by ${formatDeadline(settings.checkInDeadline)}.`}
+                />
+              )}
             </h2>
-            <h2 className="italic font-light text-slate-300">
-              {building ?? profile.location}
-            </h2>
+            {profile.location && (
+              <h2 className="italic font-light text-slate-300">{profile.location}</h2>
+            )}
+            {alive && settings.checkInEnabled && (
+              <CheckInBadge
+                checkedIn={isCheckedIn}
+                building={settings.checkInBuilding}
+                deadline={formatDeadline(settings.checkInDeadline)}
+                locating={sharing === "locating"}
+                hint={
+                  sharing === "failed"
+                    ? "check-in needs your location"
+                    : sharing === "shared" && !profile.location
+                      ? "you're not in a building"
+                      : null
+                }
+                onCheckIn={retry}
+              />
+            )}
+            <button className="text-sm text-slate-400 hover:text-white pt-1" onClick={signUserOut}>
+              Sign out
+            </button>
           </div>
           {alive ? (
             <div className="m-4 flex-col space-y-4">
@@ -178,6 +273,26 @@ export default function Profile({ loaderData }: Route.ComponentProps) {
               <p className="italic font-light text-slate-300">
                 {profile.target.email}
               </p>
+              {showTargetLocation && (
+                <div className="mt-2 flex flex-col items-center">
+                  {/* revealOn false: only sharing their location reveals it, not a tap or hover */}
+                  <Spoiler
+                    hidden={hiddenUntilShared && sharing !== "shared"}
+                    revealOn={false}
+                    theme="dark"
+                    className="text-lg font-semibold"
+                  >
+                    {targetLocation ?? "Somewhere on campus"}
+                  </Spoiler>
+                  {hiddenUntilShared && sharing !== "shared" && (
+                    <p className="text-xs text-slate-400 mt-1">
+                      {sharing === "failed"
+                        ? "Turn on your location to see where your target is."
+                        : "Share your location to see where your target is."}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           ) : null}
         </div>
