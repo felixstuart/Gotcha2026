@@ -21,6 +21,8 @@ export interface Profile {
   // set by adminUpdateProfile so everyone can see who last touched a player
   lastEditedBy?: string;
   lastEditedAt?: number;
+  // when they last checked in (ms since epoch). Set by getProfile, at most once per school day
+  checkedInAt?: number;
 }
 
 export type Role = "admin" | "player" | "observer"
@@ -72,6 +74,7 @@ export interface AdminIndexRow {
   targetEmail: string;
   lastEditedBy: string | null;
   lastEditedAt: number | null;
+  checkedInAt: number | null; // the daily check-in sweep reads this, so it never reads profiles to find who missed
 }
 
 // The adminIndex/main document
@@ -93,13 +96,13 @@ export type AdminProfileChanges = Partial<EditableProfileFields> & {
   targetEmail?: string;
 };
 
-export type AdminAction = "updateProfile" | "tagOut" | "rebuildIndex" | "updateSettings";
+export type AdminAction = "updateProfile" | "tagOut" | "rebuildIndex" | "updateSettings" | "missedCheckIn";
 
 // One entry in the adminLog collection. Written by the admin functions in the
 // same transaction as the change itself, so the log can't drift from reality.
 export interface AdminLogEntry {
   at: number;
-  by: string; // admin email, always taken from their token
+  by: string; // admin email, always taken from their token, or "system" for the check-in sweep
   action: AdminAction;
   target: string | null; // player email, if the action was about one player
   changes?: Record<string, { from: unknown; to: unknown }>;
@@ -116,6 +119,17 @@ export interface GameSettings {
   revengeEnabled: boolean;
   // players' phones report which building they're in, and their chaser sees it
   locationEnabled: boolean;
+  // chasers get their target's building (needs locationEnabled too). when off, it's still saved but never sent to players
+  seeTargetLocation: boolean;
+  // players only get their target's building in a response to a call where they shared their own
+  shareToSeeTargetLocation: boolean;
+  // alive players have to check in (by sharing their location in a building) every school day
+  // before checkInDeadline, or the check-in sweep takes them out (functions/src/checkInSweep.ts)
+  checkInEnabled: boolean;
+  checkInDeadline: number; // minutes after midnight, school time (America/New_York)
+  checkInBuilding: string | null; // null means any building
+  // the school day (YYYY-MM-DD) the sweep last ran for. Only the sweep (and turning check-in on) set it
+  lastCheckInSweepDay: string | null;
   updatedAt: number | null;
   updatedBy: string | null;
 }

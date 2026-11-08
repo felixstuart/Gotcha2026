@@ -1,6 +1,6 @@
 # Gotcha 2026
 
-This is the repo that contains all the cloud functions and client code for Gotcha. Currently, only the website and cloud functions are up, but the iOS and Android clients are coming. 
+This is the repo that contains all the cloud functions and client code for Gotcha. That's the website, the cloud functions, and (as submodules) the iOS and Android apps. 
 
 Cloud Functions are a new addition to the architecture this year. More information about why they were chosen can be found in the `functions/Why Cloud Functions.md` file, but this architecture was chosen to reduce database writes
 
@@ -8,6 +8,22 @@ Cloud Functions are a new addition to the architecture this year. More informati
 
 `/website` houses the website. The website uses React Router v7 (in Framework mode) with Firebase Hosting as a deployment target. 
 `/functions` contains the cloud functions in the `index.ts` file. 
+`/ios` is the SwiftUI iPhone app and `/android` is the React Native (Expo) Android app. Both are **git submodules** with their own repos, so clone with `git clone --recursive`, or run `git submodule update --init` in an existing checkout.
+`/shared` holds what the apps share with the backend: the callable functions and their request/response types (`callables.ts`, `callables.json`), the design tokens (`theme.json`) and the player-facing text (`copy.json`).
+
+## Native apps
+
+The apps never hand-write their models, function names, building names, colors or text. They're generated from `types.ts`, `shared/` and `geofence/buildings.geojson`:
+
+```sh
+npm run gen:clients     # writes ios/Gotcha/Generated/*.swift and android/src/generated/*.ts
+npm run check:clients   # fails if those files are out of date
+```
+
+Run `gen:clients` after changing any of those sources, and commit the generated files inside each submodule (so each app still builds when cloned on its own). Then commit the new submodule pointers here.
+
+- **iOS:** open `ios/Gotcha.xcodeproj` and add `GoogleService-Info.plist` to `ios/Gotcha/` (it's gitignored). Debug builds use the Auth and Functions emulators on 127.0.0.1, and the sign-in screen has an emulator field that signs in as any roster email. `GotchaUITests` runs the whole player flow against the emulators; see the comments at the top of `GotchaFlowTests.swift` for setup.
+- **Android:** see `android/README.md`. It needs `google-services.json` for package `edu.milton.gotcha`.
 
 ## Getting Started
 
