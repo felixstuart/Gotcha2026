@@ -1,6 +1,6 @@
 # Gotcha 2026
 
-This is the repo that contains all the cloud functions and client code for Gotcha. That's the website, the cloud functions, and (as submodules) the iOS and Android apps. 
+This is the repo that contains all the cloud functions and client code for Gotcha. That's the website, the cloud functions, and the iOS and Android apps. 
 
 Cloud Functions are a new addition to the architecture this year. More information about why they were chosen can be found in the `functions/Why Cloud Functions.md` file, but this architecture was chosen to reduce database writes
 
@@ -8,7 +8,7 @@ Cloud Functions are a new addition to the architecture this year. More informati
 
 `/website` houses the website. The website uses React Router v7 (in Framework mode) with Firebase Hosting as a deployment target. 
 `/functions` contains the cloud functions in the `index.ts` file. 
-`/ios` is the SwiftUI iPhone app and `/android` is the React Native (Expo) Android app. Both are **git submodules** with their own repos, so clone with `git clone --recursive`, or run `git submodule update --init` in an existing checkout.
+`/ios` is the SwiftUI iPhone app (started by a club member in apopper29/Gotcha2026, whose history is kept here) and `/android` is the React Native (Expo) Android app.
 `/shared` holds what the apps share with the backend: the callable functions and their request/response types (`callables.ts`, `callables.json`), the design tokens (`theme.json`) and the player-facing text (`copy.json`).
 
 ## Native apps
@@ -20,7 +20,7 @@ npm run gen:clients     # writes ios/Gotcha/Generated/*.swift and android/src/ge
 npm run check:clients   # fails if those files are out of date
 ```
 
-Run `gen:clients` after changing any of those sources, and commit the generated files inside each submodule (so each app still builds when cloned on its own). Then commit the new submodule pointers here.
+Run `gen:clients` after changing any of those sources and commit the generated files along with the change, so a backend type change and both apps' updates land in the same commit. The generated files are committed (rather than built on the fly) so Xcode and Expo builds don't need a Node step.
 
 - **iOS:** open `ios/Gotcha.xcodeproj` and add `GoogleService-Info.plist` to `ios/Gotcha/` (it's gitignored). Debug builds use the Auth and Functions emulators on 127.0.0.1, and the sign-in screen has an emulator field that signs in as any roster email. `GotchaUITests` runs the whole player flow against the emulators; see the comments at the top of `GotchaFlowTests.swift` for setup.
 - **Android:** see `android/README.md`. It needs `google-services.json` for package `edu.milton.gotcha`.

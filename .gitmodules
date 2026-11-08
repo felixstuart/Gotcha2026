@@ -1,6 +1,0 @@
-[submodule "ios"]
-	path = ios
-	url = https://github.com/apopper29/Gotcha2026.git
-[submodule "android"]
-	path = android
-	url = https://github.com/felixstuart/Gotcha2026-android.git
