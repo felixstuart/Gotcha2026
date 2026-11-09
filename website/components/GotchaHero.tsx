@@ -24,21 +24,25 @@ export const FuzzyText: React.FC<FuzzyTextProps> = ({
   verticalCoverage = 0.9,
   ...divProps
 }) => {
-  const canvasRef = useRef<
-    HTMLCanvasElement & { cleanupFuzzyText?: () => void }
-  >(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    let animationFrameId: number;
     let isCancelled = false;
+    let initializationId = 0;
+    let cleanupAnimation: (() => void) | undefined;
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const init = async () => {
+      const currentInitializationId = ++initializationId;
+      cleanupAnimation?.();
+      cleanupAnimation = undefined;
+
       if (document.fonts?.ready) {
         await document.fonts.ready;
       }
-      if (isCancelled) return;
+      // Only the latest resize may initialize after font loading finishes.
+      if (isCancelled || currentInitializationId !== initializationId) return;
 
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
@@ -113,10 +117,11 @@ export const FuzzyText: React.FC<FuzzyTextProps> = ({
       const interactiveBottom = screenHeight;
 
       let isHovering = false;
+      let animationFrameId: number;
       const fuzzRange = 30;
 
       const run = () => {
-        if (isCancelled) return;
+        if (isCancelled || currentInitializationId !== initializationId) return;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         const intensity = isHovering ? hoverIntensity : baseIntensity;
 
@@ -174,11 +179,6 @@ export const FuzzyText: React.FC<FuzzyTextProps> = ({
         isHovering = false;
       };
 
-      const handleResize = () => {
-        // Re-initialize on resize
-        init();
-      };
-
       if (enableHover) {
         canvas.addEventListener("mousemove", handleMouseMove);
         canvas.addEventListener("mouseleave", handleMouseLeave);
@@ -188,11 +188,8 @@ export const FuzzyText: React.FC<FuzzyTextProps> = ({
         canvas.addEventListener("touchend", handleTouchEnd);
       }
 
-      window.addEventListener("resize", handleResize);
-
-      const cleanup = () => {
+      cleanupAnimation = () => {
         window.cancelAnimationFrame(animationFrameId);
-        window.removeEventListener("resize", handleResize);
         if (enableHover) {
           canvas.removeEventListener("mousemove", handleMouseMove);
           canvas.removeEventListener("mouseleave", handleMouseLeave);
@@ -200,18 +197,19 @@ export const FuzzyText: React.FC<FuzzyTextProps> = ({
           canvas.removeEventListener("touchend", handleTouchEnd);
         }
       };
-
-      canvas.cleanupFuzzyText = cleanup;
     };
 
-    init();
+    const handleResize = () => {
+      void init();
+    };
+
+    window.addEventListener("resize", handleResize);
+    void init();
 
     return () => {
       isCancelled = true;
-      window.cancelAnimationFrame(animationFrameId);
-      if (canvas && canvas.cleanupFuzzyText) {
-        canvas.cleanupFuzzyText();
-      }
+      window.removeEventListener("resize", handleResize);
+      cleanupAnimation?.();
     };
   }, [
     children,
