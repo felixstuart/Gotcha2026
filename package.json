@@ -1,5 +1,7 @@
 {
   "scripts": {
+    "gen:clients": "node scripts/generate-clients.mjs",
+    "check:clients": "node scripts/generate-clients.mjs --check",
     "load:people": "node load-people.mjs",
     "test:import": "node --test load-people.test.mjs",
     "gen:buildings": "node scripts/generate-buildings.mjs"
@@ -10,6 +12,8 @@
     "gsap": "^3.14.2"
   },
   "devDependencies": {
+    "quicktype-core": "26.0.0",
+    "ts-json-schema-generator": "2.9.0",
     "typescript": "^7.0.2"
   }
 }

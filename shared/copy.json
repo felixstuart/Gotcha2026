@@ -1,0 +1,75 @@
+{
+  "$comment": "Player-facing text for the native apps, matching the website word for word. {name} placeholders are filled in by the apps. scripts/generate-clients.mjs turns this into Copy.swift and copy.ts.",
+  "appName": "Gotcha",
+  "landing": {
+    "wordmark": "GOTCHA",
+    "footer": "GOTCHA • brought to you by Programming Club • Please Proceed with Google",
+    "signIn": "Sign in with Google",
+    "schoolAccountOnly": "Please sign in with your @milton.edu account."
+  },
+  "nav": {
+    "profile": "Profile",
+    "leaderboard": "Leaderboard",
+    "signOut": "Sign out"
+  },
+  "loaderTips": [
+    "Triangulating...",
+    "Checking Tag Loop...",
+    "Making sure it's really you...",
+    "Mapping Milton...",
+    "Finding Waldo...",
+    "Scouring the AMC...",
+    "Receiving targets..."
+  ],
+  "profile": {
+    "title": "Profile",
+    "tags": "Tags",
+    "tagOut": "Tag Out",
+    "holdToConfirm": "Hold to confirm",
+    "releaseToConfirm": "Release to confirm",
+    "target": "Target",
+    "targetLocationPlaceholder": "Somewhere on campus",
+    "shareToSee": "Share your location to see where your target is.",
+    "shareToSeeFailed": "Turn on your location to see where your target is.",
+    "lastWords": "Last Words",
+    "lastWordsAttribution": "- {author} at {date}",
+    "noProfile": "No Gotcha profile found for your account",
+    "adminTitle": "Proceed to Admin Panel",
+    "adminHint": "The admin panel is on the Gotcha website."
+  },
+  "checkIn": {
+    "anyBuilding": "any building",
+    "prompt": "Check in at {where} by {deadline}",
+    "locating": "Checking in…",
+    "checkedIn": "Checked in",
+    "checkedInTooltip": "You're checked in for today. Check in again tomorrow at {where} by {deadline}.",
+    "needsLocation": "check-in needs your location",
+    "notInBuilding": "you're not in a building"
+  },
+  "lastWords": {
+    "title": "Thanks for playing.",
+    "prompt": "Any last words?",
+    "placeholder": "I'll be back...",
+    "submit": "Submit",
+    "maxLength": 60,
+    "empty": "Please enter your last words.",
+    "notSignedIn": "You must be signed in to submit last words.",
+    "failed": "Failed to submit. Please try again.",
+    "alreadySubmitted": "You have already submitted your last words.",
+    "signInAgain": "Please sign in again.",
+    "unknown": "Something went wrong. Please try again."
+  },
+  "leaderboard": {
+    "title": "Leaderboard",
+    "classes": "Classes",
+    "dorms": "Dorms",
+    "startsIn": "Starts in {time}",
+    "over": "Gotcha is Over!",
+    "you": "You"
+  },
+  "errors": {
+    "title": "Uh oh.",
+    "retry": "Try again",
+    "offline": "Showing saved data. Couldn't reach Gotcha."
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "$comment": "Design tokens for the native apps, taken from the website (Tailwind slate, dark only; check-in from components/CheckInBadge.tsx, the target's building from the `spoiled` Spoiler). scripts/generate-clients.mjs turns this into Theme.swift and theme.ts.",
+  "colors": {
+    "background": "#0f172a",
+    "card": "#1e293b",
+    "row": "#334155",
+    "button": "#475569",
+    "buttonPressed": "#1e293b",
+    "text": "#ffffff",
+    "textSecondary": "#cbd5e1",
+    "textMuted": "#94a3b8",
+    "textFaint": "#64748b",
+    "ring": "#475569",
+    "error": "#fca5a5",
+    "countdown": "#ef4444",
+    "tagOutFill": "#e11d48",
+    "rankFirst": "#fbbf24",
+    "rankSecond": "#94a3b8",
+    "rankThird": "#b45309",
+    "rankOther": "#64748b",
+    "lastWordsBackground": "#000000",
+    "glitch1": "#2b4539",
+    "glitch2": "#61dca3",
+    "glitch3": "#61b3dc",
+    "youHighlight": "#fde68a",
+    "verified": "#1d9bf0",
+    "checkedInRing": "#0ea5e980",
+    "checkInBorder": "#94a3b8",
+    "checkInText": "#f1f5f9",
+    "spoilerParticle": "#ffffff",
+    "tooltipBackground": "#020617",
+    "tooltipText": "#e2e8f0"
+  },
+  "radius": {
+    "pill": 9999,
+    "card": 8,
+    "leaderboardCard": 12,
+    "button": 6
+  },
+  "spacing": {
+    "card": 16,
+    "stack": 16,
+    "row": 12,
+    "list": 8
+  },
+  "fontSize": {
+    "caption": 12,
+    "small": 14,
+    "body": 16,
+    "title": 20,
+    "headline": 24,
+    "countdown": 36,
+    "error": 60,
+    "wordmark": 96
+  },
+  "animation": {
+    "tagOutHoldSeconds": 2,
+    "tagOutRewindSeconds": 0.2,
+    "loaderTipSeconds": 2,
+    "loaderPulseSeconds": 1.8,
+    "spoilerDensity": 0.12,
+    "spoilerFPS": 24,
+    "spoilerRevealSeconds": 0.3,
+    "spoilerHideSeconds": 0.15,
+    "spoilerNoiseFadeSeconds": 1.5
+  }
+}

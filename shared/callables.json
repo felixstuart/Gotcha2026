@@ -1,0 +1,11 @@
+{
+  "region": "us-central1",
+  "callables": {
+    "getProfile": { "request": "GetProfileRequest", "response": "Profile", "nullable": true },
+    "getGameSettings": { "request": "EmptyRequest", "response": "GameSettings" },
+    "getLeaderboard": { "request": "EmptyRequest", "response": "GetLeaderboardResponse" },
+    "getLastWords": { "request": "EmptyRequest", "response": "ClientLastWordsResponse" },
+    "tagOut": { "request": "EmptyRequest", "response": "ClientTaggedOutResponse" },
+    "setLastWords": { "request": "SetLastWordsRequest", "response": "StatusResponse" }
+  }
+}
