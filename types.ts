@@ -58,6 +58,7 @@ export interface ClientLastWordsResponse {
 
 export interface Leaderboard {
   topTaggers : Array<{
+    email: string; // stable player identity; names are display-only
     name: string;
     tags: number;
   }>;

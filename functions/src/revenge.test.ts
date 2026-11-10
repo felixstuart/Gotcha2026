@@ -9,6 +9,7 @@ import { db } from "./firebase";
 import { tagOut } from "./tagOut";
 import { adminUpdateProfile } from "./adminUpdateProfile";
 import { updateLeaderboard } from "./updateLeaderboard";
+import { toAdminIndexRow } from "./adminIndex";
 import { DEFAULT_SETTINGS, setCachedSettings } from "./settings";
 
 const testEnv = firebaseFunctionsTest({ projectId: process.env.GCLOUD_PROJECT });
@@ -28,11 +29,22 @@ async function eventsFor(email: string) {
   return (await db.collection("tagOutEvents").where("victim", "==", email).get()).docs;
 }
 
+async function createScore(email: string, tags: number, name: string) {
+  const player = await read(email);
+  const ref = db.collection("tagOutEvents").doc();
+  await ref.set({
+    tagger: email, victim: T, timestamp: Date.now(), active: false,
+    score: { name, tags, class: player.class, dorm: player.dayorboard },
+  });
+  return ref.id;
+}
+
 const target = (email: string): Profile["target"] => ({ email, firstName: email, lastName: "Test" });
 const profile = (chaser: string, next: string, alive = true): Profile => ({
   alive, chaser, target: target(next), role: "player", firstName: next,
   lastName: "Test", class: "senior", dayorboard: "day", tags: 0,
 });
+
 const read = async (email: string) => (await db.doc(`data/${email}`).get()).data() as Profile;
 const authFor = (email: string, admin = false) => ({
   uid: email, token: { email, email_verified: true, ...(admin && { admin: true }) },
@@ -207,7 +219,7 @@ describe("revenge during elimination", () => {
     await processScore(second.id);
     await Promise.all([processScore(first.id), processScore(first.id)]);
     const board = (await db.doc("leaderboard/main").get()).data()!;
-    expect(board.topTaggers).toEqual([{ name: `${q.firstName} ${q.lastName}`, tags: 2 }]);
+    expect(board.topTaggers).toEqual([{ email: Q, name: `${q.firstName} ${q.lastName}`, tags: 2 }]);
     expect(board.byClass).toEqual([{ class: q.class, tags: 2 }]);
     expect(board.byDorms).toEqual([{ dorm: q.dayorboard, tags: 2 }]);
   });
@@ -219,7 +231,7 @@ describe("revenge during elimination", () => {
     await db.doc(`data/${T}`).update({ chaser: R });
     await processScore(event.id);
     expect((await db.doc("leaderboard/main").get()).data()?.topTaggers)
-      .toEqual([{ name: `${q.firstName} ${q.lastName}`, tags: 1 }]);
+      .toEqual([{ email: Q, name: `${q.firstName} ${q.lastName}`, tags: 1 }]);
   });
 
   it("does not award scores for admin removals", async () => {
@@ -248,5 +260,84 @@ describe("revenge during elimination", () => {
     expect((await db.doc(`tagOutEvents/legacy-${V1}`).get()).data()?.score).toBeUndefined();
     await eliminate(T);
     await expectLoop([Q, V1, V2, F, R]);
+  }, 15000);
+});
+
+describe("leaderboard player identity", () => {
+  async function namesakes() {
+    await db.doc(`data/${Q}`).update({ firstName: "Alex", lastName: "Smith", tags: 3 });
+    await db.doc(`data/${R}`).update({ firstName: "Alex", lastName: "Smith", tags: 8 });
+    const q = await createScore(Q, 3, "Alex Smith");
+    const r = await createScore(R, 8, "Alex Smith");
+    await Promise.all([processScore(q), processScore(r)]);
+  }
+
+  it("keeps equal names in separate ranked entries", async () => {
+    await namesakes();
+    expect((await db.doc("leaderboard/main").get()).data()?.topTaggers).toEqual([
+      { email: R, name: "Alex Smith", tags: 8 },
+      { email: Q, name: "Alex Smith", tags: 3 },
+    ]);
+  });
+
+  it.each([true, false])("corrects only the selected namesake (admin index available: %s)", async (hasIndex) => {
+    await namesakes();
+    const index = db.doc("adminIndex/main");
+    if (hasIndex) {
+      await index.set({ players: {
+        [Q]: toAdminIndexRow(await read(Q)), [R]: toAdminIndexRow(await read(R)),
+      }, updatedAt: Date.now() });
+    } else await index.delete();
+    await runAdminUpdate({
+      data: { email: Q, changes: { firstName: "Taylor", tags: 2 } }, auth: authFor(R, true),
+    } as any);
+    expect((await db.doc("leaderboard/main").get()).data()?.topTaggers).toEqual([
+      { email: R, name: "Alex Smith", tags: 8 },
+      { email: Q, name: "Taylor Smith", tags: 2 },
+    ]);
+  });
+
+  it("does not undo an admin rename or score correction when an old event arrives", async () => {
+    await db.doc(`data/${Q}`).update({ firstName: "Alex", lastName: "Smith", tags: 1 });
+    const event = await createScore(Q, 1, "Alex Smith");
+    await db.doc("leaderboard/main").set({
+      topTaggers: [{ email: Q, name: "Alex Smith", tags: 1 }], byDorms: [], byClass: [],
+    });
+    await db.doc("adminIndex/main").delete();
+    await runAdminUpdate({
+      data: { email: Q, changes: { firstName: "Taylor", tags: 0 } }, auth: authFor(R, true),
+    } as any);
+    await processScore(event);
+    expect((await db.doc("leaderboard/main").get()).data()?.topTaggers)
+      .toEqual([{ email: Q, name: "Taylor Smith", tags: 0 }]);
+  });
+
+  it("migrates legacy names from profiles without guessing IDs or changing group totals", async () => {
+    await db.doc(`data/${Q}`).update({ firstName: "Alex", lastName: "Smith", tags: 3 });
+    await db.doc(`data/${R}`).update({ firstName: "Alex", lastName: "Smith", tags: 8 });
+    const ref = db.doc("leaderboard/main");
+    await ref.set({
+      topTaggers: [{ name: "Alex Smith", tags: 11 }],
+      byDorms: [{ dorm: "day", tags: 11 }], byClass: [{ class: "senior", tags: 11 }],
+    });
+    const event = await createScore(Q, 3, "Alex Smith");
+
+    const project = process.env.GCLOUD_PROJECT!;
+    if (!project.startsWith("demo-")) throw new Error("Migration test requires a demo project");
+    const script = resolve(__dirname, "../../scripts/migrate-leaderboard-emails.mjs");
+    const run = promisify(execFile);
+    await run(process.execPath, [script, "--project", project]);
+    expect((await ref.get()).data()?.topTaggers[0].email).toBeUndefined();
+    await run(process.execPath, [script, "--project", project, "--apply"]);
+    const migrated = (await ref.get()).data()!;
+    expect(migrated.topTaggers.filter((entry: { tags: number }) => entry.tags > 0)).toEqual([
+      { email: R, name: "Alex Smith", tags: 8 },
+      { email: Q, name: "Alex Smith", tags: 3 },
+    ]);
+    expect(migrated.byDorms).toEqual([{ dorm: "day", tags: 11 }]);
+    expect(migrated.byClass).toEqual([{ class: "senior", tags: 11 }]);
+    expect((await db.doc(`tagOutEvents/${event}`).get()).data()?.leaderboardUpdated).toBeUndefined();
+    await run(process.execPath, [script, "--project", project, "--apply"]);
+    expect((await ref.get()).data()?.topTaggers).toEqual(migrated.topTaggers);
   }, 15000);
 });

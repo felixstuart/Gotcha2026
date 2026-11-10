@@ -51,9 +51,16 @@ export interface FirestoreSchema {
    * Derived scores, read by getLeaderboard. updateLeaderboard processes event.score
    * asynchronously; leaderboardUpdated and aggregate writes commit in one transaction
    * so redelivery cannot count twice. Closing an event does not revoke its score.
-   * Admin corrections also adjust aggregates in the profile-edit transaction.
-   * Top entries still use names, so namesakes and delayed events overlapping admin
-   * corrections need separate reconciliation. There is no general rebuild endpoint.
+   * Top entries are { email, name, tags }: email identifies a player; name is display-only.
+   * Score processing matches tagger email and reads the latest profile name/tag total,
+   * preserving namesakes, renames and tag corrections during delayed delivery.
+   * Admin corrections also match email and adjust aggregates in the profile-edit tx.
+   * Delayed score events overlapping dorm/class corrections still need reconciliation.
+   * Legacy name-only entries can be rebuilt using
+   * scripts/migrate-leaderboard-emails.mjs (dry-run unless --apply; see rollout comments).
+   * It rebuilds the top ten from profile IDs/totals, preserving group totals and event
+   * markers; current writes identify players by email only.
+   * There is no general aggregate rebuild endpoint.
    * lastUpdated is a server timestamp in event writes; the shared client model and
    * seed data currently represent it as milliseconds (an existing type mismatch).
    */

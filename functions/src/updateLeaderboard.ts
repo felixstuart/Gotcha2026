@@ -1,5 +1,5 @@
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
-import { Leaderboard, TagOutEvent } from "../../types";
+import { Leaderboard, Profile, TagOutEvent } from "../../types";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 
 // A separate event is created for every tag, even when the victim was revived before.
@@ -15,13 +15,19 @@ export const updateLeaderboard = onDocumentCreated(
 
       const boardRef = db.doc("leaderboard/main");
       const board = (await tx.get(boardRef)).data() as Leaderboard | undefined;
+      const player = (await tx.get(db.doc(`data/${tag.tagger}`))).data() as Profile | undefined;
       const score = tag.score;
       const topTaggers = [...(board?.topTaggers ?? [])];
-      const existing = topTaggers.find((entry) => entry.name === score.name);
-      // Cumulative totals keep delayed or out-of-order events from double counting.
-      if (existing) existing.tags = Math.max(existing.tags, score.tags);
-      else topTaggers.push({ name: score.name, tags: score.tags });
-      topTaggers.sort((a, b) => b.tags - a.tags || a.name.localeCompare(b.name));
+      const existing = topTaggers.find((entry) => entry.email === tag.tagger);
+      // Current profile values preserve renames and score corrections during delayed delivery.
+      const entry = {
+        email: tag.tagger,
+        name: player ? `${player.firstName} ${player.lastName}` : score.name,
+        tags: player?.tags ?? score.tags,
+      };
+      if (existing) Object.assign(existing, entry);
+      else topTaggers.push(entry);
+      topTaggers.sort((a, b) => b.tags - a.tags || a.email.localeCompare(b.email));
 
       const byDorms = (board?.byDorms ?? []).map((entry) => ({ ...entry }));
       const dorm = byDorms.find((entry) => entry.dorm === score.dorm);
