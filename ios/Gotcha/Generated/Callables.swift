@@ -14,7 +14,7 @@ nonisolated struct EmptyRequest: Codable, Sendable, Equatable {}
 nonisolated enum Callables {
     static let region = "us-central1"
 
-    static let getProfile = Callable<GetProfileRequest, Profile?>(name: "getProfile")
+    static let getProfile = Callable<GetProfileRequest, ClientProfile?>(name: "getProfile")
     static let getGameSettings = Callable<EmptyRequest, GameSettings>(name: "getGameSettings")
     static let getLeaderboard = Callable<EmptyRequest, GetLeaderboardResponse>(name: "getLeaderboard")
     static let getLastWords = Callable<EmptyRequest, ClientLastWordsResponse>(name: "getLastWords")

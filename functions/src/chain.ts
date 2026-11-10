@@ -18,6 +18,7 @@ const NO_TARGET: Profile["target"] = { firstName: "None", lastName: "", email: "
 export class Chain {
   private profiles = new Map<string, Profile>();
   private touched = new Set<string>();
+  private closedTagOutEvents = new Set<string>();
 
   constructor(private db: Firestore, private tx: Transaction) {}
 
@@ -50,6 +51,14 @@ export class Chain {
     for (const [email, profile] of this.changed()) {
       this.tx.set(this.db.doc(`data/${email}`), profile);
     }
+    for (const id of this.closedTagOutEvents) {
+      this.tx.update(this.db.doc(`tagOutEvents/${id}`), { active: false });
+    }
+  }
+
+  /** Queue event closure until save, so later chain operations can still read. */
+  closeTagOutEvent(id: string) {
+    this.closedTagOutEvents.add(id);
   }
 
   /**
@@ -83,7 +92,7 @@ export class Chain {
   /**
    * Takes an alive player out of the loop, so their chaser now chases their target.
    * Their own `chaser` field is left alone on purpose: it records who got them
-   * (updateLeaderboard reads it), and reviving puts them back after that player.
+   * and reviving puts them back after that player.
    * If only two were left, the other player is the winner and gets no target.
    */
   async remove(email: string): Promise<{ chaserEmail: string; winner: string | null }> {
@@ -140,6 +149,10 @@ export class Chain {
     const nextEmail = anchor.target.email || anchorEmail;
 
     const player = await this.load(email);
+    if (player.activeTagOutEvent) {
+      this.closeTagOutEvent(player.activeTagOutEvent);
+      delete player.activeTagOutEvent;
+    }
     player.alive = true;
     this.touch(email);
 

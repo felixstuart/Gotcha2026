@@ -12,6 +12,8 @@ import {
 import { requireAdmin } from "./auth";
 import { ADMIN_INDEX_PATH, logAdminAction, toAdminIndexRow } from "./adminIndex";
 import { Chain } from "./chain";
+import { reviveVictims } from "./revenge";
+import { recordTagOut } from "./tagOutEvents";
 import { lastWordsIndexPath } from "./getLastWords";
 
 const ROLES: Role[] = ["admin", "player", "observer"];
@@ -69,9 +71,8 @@ function parseChanges(raw: unknown): AdminProfileChanges {
  * Rebuilds topTaggers from every player in the admin index, with the edited player's new values.
  * This is what lets the next-best player move up when a top tagger's tags go down.
  *
- * The index can lag a second behind a tag out (it's updated by a trigger), while the leaderboard
- * is updated in the same transaction as every tag. So for anyone already on the leaderboard,
- * its count wins; the index only fills in everyone else.
+ * Existing entries use their leaderboard totals; the index supplies everyone else.
+ * Score events are asynchronous, so this is not a full rebuild from profiles.
  */
 function topTaggersFromIndex(
   leaderboard: Leaderboard,
@@ -79,20 +80,20 @@ function topTaggersFromIndex(
   email: string,
   after: Profile,
 ): Leaderboard["topTaggers"] {
-  const current = new Map(leaderboard.topTaggers.map((tagger) => [tagger.name, tagger.tags]));
-  const edited = { name: `${after.firstName} ${after.lastName}`, tags: after.tags };
+  const current = new Map(leaderboard.topTaggers.map((tagger) => [tagger.email, tagger.tags]));
+  const edited = { email, name: `${after.firstName} ${after.lastName}`, tags: after.tags };
 
   const candidates = Object.entries(rows)
     .filter(([rowEmail]) => rowEmail !== email)
-    .map(([, row]) => {
+    .map(([rowEmail, row]) => {
       const name = `${row.firstName} ${row.lastName}`;
-      return { name, tags: current.get(name) ?? row.tags };
+      return { email: rowEmail, name, tags: current.get(rowEmail) ?? row.tags };
     })
     .concat([edited]);
 
   return candidates
-    .sort((a, b) => b.tags - a.tags || a.name.localeCompare(b.name))
-    .slice(0, leaderboard.topTaggers.length);
+    .sort((a, b) => b.tags - a.tags || a.email.localeCompare(b.email))
+    .slice(0, 10);
 }
 
 /**
@@ -134,7 +135,7 @@ function leaderboardUpdates(
 
   const beforeName = `${before.firstName} ${before.lastName}`;
   const afterName = `${after.firstName} ${after.lastName}`;
-  const wasTopTagger = leaderboard.topTaggers.some((tagger) => tagger.name === beforeName);
+  const wasTopTagger = leaderboard.topTaggers.some((tagger) => tagger.email === email);
 
   if ((before.tags !== after.tags || beforeName !== afterName) && indexRows) {
     const topTaggers = topTaggersFromIndex(leaderboard, indexRows, email, after);
@@ -142,15 +143,15 @@ function leaderboardUpdates(
       updates.topTaggers = topTaggers;
     }
   } else if (before.tags !== after.tags || beforeName !== afterName) {
-    const size = leaderboard.topTaggers.length;
-    const others = leaderboard.topTaggers.filter((tagger) => tagger.name !== beforeName);
+    const size = 10;
+    const others = leaderboard.topTaggers.filter((tagger) => tagger.email !== email);
     const minTags = Math.min(...others.map((tagger) => tagger.tags));
     // they keep their spot if they had one, otherwise they need to beat the lowest top tagger
     const qualifies = others.length < size || after.tags > minTags;
 
     if (wasTopTagger || qualifies) {
-      updates.topTaggers = (qualifies ? others.concat([{ name: afterName, tags: after.tags }]) : others)
-        .sort((a, b) => b.tags - a.tags)
+      updates.topTaggers = (qualifies ? others.concat([{ email, name: afterName, tags: after.tags }]) : others)
+        .sort((a, b) => b.tags - a.tags || a.email.localeCompare(b.email))
         .slice(0, size);
     }
   }
@@ -184,7 +185,7 @@ async function randomAlivePlayer(
  * Lets an admin edit a player (see AdminProfileChanges for what can change).
  *
  * Chain changes keep the loop of chasers and targets intact (see chain.ts):
- * - `alive: false` takes them out of the game without anyone getting a tag (use tagOut for a tag)
+ * - `alive: false` takes them out without awarding a tag, and revives their victims if revenge is on
  * - `alive: true` revives them, after `chaser` / before `targetEmail` if given. Otherwise they go
  *   back in the closest spot (see Chain.closestAliveChaser), or after a random alive player if
  *   they've never played. This is also how observers join the game
@@ -259,6 +260,7 @@ export const adminUpdateProfile = onCall(async (request) => {
         throw new HttpsError("invalid-argument", "Taking a player out can't be combined with moving them");
       }
       await chain.remove(email);
+      await reviveVictims(db, tx, chain, email);
     } else if (changesAlive && alive === true) {
       // revive after the chosen chaser, before the chosen target, or in the closest spot
       let anchor: string | null;
@@ -321,6 +323,7 @@ export const adminUpdateProfile = onCall(async (request) => {
       profile.lastEditedBy = adminEmail;
       profile.lastEditedAt = now;
     }
+    if (changesAlive && alive === false) recordTagOut(db, tx, email, player);
     chain.save();
 
     // a revived player's old last words go away, so their next tag out creates a new entry

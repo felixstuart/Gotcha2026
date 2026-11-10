@@ -4,7 +4,6 @@ setGlobalOptions({ maxInstances: 60 });
 
 export { getProfile } from "./getProfile";
 export { tagOut } from "./tagOut";
-export { revenge } from "./revenge";
 export { setLastWords } from "./setLastWords";
 export { getLastWords } from "./getLastWords";
 export { updateLeaderboard } from "./updateLeaderboard";

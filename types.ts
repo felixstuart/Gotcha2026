@@ -23,6 +23,25 @@ export interface Profile {
   lastEditedAt?: number;
   // when they last checked in (ms since epoch). Set by getProfile, at most once per school day
   checkedInAt?: number;
+  // The event for their current elimination; removed when they return to the game.
+  activeTagOutEvent?: string;
+}
+
+// getProfile omits the hunter for non-admins; admins may receive the stored value.
+// Keep the database Profile strict: chain operations always require a chaser.
+export interface ClientProfile extends Omit<Profile, "chaser"> {
+  chaser?: string;
+}
+
+// One document per elimination, including repeat eliminations of the same player.
+export interface TagOutEvent {
+  tagger: string;
+  victim: string;
+  timestamp: number;
+  active: boolean; // false once this elimination no longer qualifies for revenge
+  // Omitted for admin removals and imported history, which must not award a tag.
+  score?: { name: string; class: string; dorm: string; tags: number };
+  leaderboardUpdated?: boolean;
 }
 
 export type Role = "admin" | "player" | "observer"
@@ -45,6 +64,7 @@ export interface ClientLastWordsResponse {
 
 export interface Leaderboard {
   topTaggers : Array<{
+    email: string; // stable player identity; names are display-only
     name: string;
     tags: number;
   }>;
@@ -115,7 +135,7 @@ export interface GameSettings {
   // players can only be tagged out between these times (ms since epoch). null means no limit
   startsAt: number | null;
   endsAt: number | null;
-  // when a player is tagged out, everyone they tagged comes back (functions/src/revenge.ts)
+  // revive a tagged-out player's victims in the same transaction, with no time cutoff (functions/src/revenge.ts)
   revengeEnabled: boolean;
   // players' phones report which building they're in, and their chaser sees it
   locationEnabled: boolean;

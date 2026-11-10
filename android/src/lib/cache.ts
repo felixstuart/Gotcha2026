@@ -14,11 +14,12 @@
  * - Concurrent requests for the same key share one network call.
  * - The target's building (`profile.target.location`) is never written to disk:
  *   with "share to see" on it must only come from the response it was revealed in.
+ * - Hunter identity is stripped from cached profiles, including older saved entries.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
 import Storage from "expo-sqlite/kv-store";
-import type { Profile } from "@/generated/types";
+import type { ClientProfile as Profile } from "@/generated/types";
 
 /** Cache keys, kept in one place so screens and invalidation can't drift apart. */
 export const KEYS = {
@@ -46,10 +47,16 @@ const memory = new Map<string, Entry>(); // by disk key
 const inFlight = new Map<string, Promise<unknown>>(); // by disk key
 const listeners = new Map<CacheKey, Set<(event: Event) => void>>();
 
+function withoutHunter(key: CacheKey, data: unknown): unknown {
+  if (key !== KEYS.profile || !data) return data;
+  const { chaser: _hunter, ...profile } = data as Profile;
+  return profile;
+}
+
 /** Strips what must never be persisted before an entry goes to disk. */
 function forDisk(key: CacheKey, data: unknown): unknown {
   if (key !== KEYS.profile || !data) return data;
-  const profile = data as Profile;
+  const profile = withoutHunter(key, data) as Profile;
   if (!profile.target) return profile;
   const { location: _hidden, ...target } = profile.target;
   return { ...profile, target };
@@ -73,6 +80,10 @@ function readEntry(key: CacheKey): Entry | undefined {
     const raw = Storage.getItemSync(dk);
     if (!raw) return undefined;
     const entry = JSON.parse(raw) as Entry;
+    if (key === KEYS.profile && entry.data) {
+      entry.data = forDisk(key, entry.data);
+      Storage.setItem(dk, JSON.stringify(entry)).catch(() => {});
+    }
     memory.set(dk, entry);
     return entry;
   } catch {
@@ -81,6 +92,7 @@ function readEntry(key: CacheKey): Entry | undefined {
 }
 
 function writeEntry(key: CacheKey, entry: Entry) {
+  entry = { ...entry, data: withoutHunter(key, entry.data) };
   const dk = diskKey(key);
   memory.set(dk, entry);
   if (!uid) return;

@@ -1,12 +1,12 @@
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
-import { Profile, Leaderboard } from "../../types";
-import {
-  onDocumentCreatedWithAuthContext,
-} from "firebase-functions/firestore";
+import { Leaderboard, Profile, TagOutEvent } from "../../types";
+import { onDocumentCreated } from "firebase-functions/v2/firestore";
 
-export const updateLeaderboard = onDocumentCreatedWithAuthContext(
-  "lastWords/{userEmail}",
+// A separate event is created for every tag, even when the victim was revived before.
+export const updateLeaderboard = onDocumentCreated(
+  { document: "tagOutEvents/{eventId}", retry: true },
   async (event) => {
+    if (!event.data?.data().score) return;
     const db = getFirestore();
 
     try {

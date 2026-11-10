@@ -253,6 +253,7 @@ export async function seedLeaderboard() {
 
   const leaderboardData: Leaderboard = {
     topTaggers: profiles.map((p) => ({
+      email: `${p.firstName.toLowerCase()}_${p.lastName.toLowerCase()}@milton.edu`,
       name: `${p.firstName} ${p.lastName}`,
       tags: p.tags,
     })),

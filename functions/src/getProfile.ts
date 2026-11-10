@@ -1,7 +1,7 @@
 import { requireRegisteredSchoolUser, requestedEmail } from "./authorization";
 import { syncRoleClaim } from "./auth";
 import { CallableRequest, HttpsError, onCall } from "firebase-functions/v2/https";
-import { GameSettings, Profile, Role } from "../../types";
+import { ClientProfile, GameSettings, Profile, Role } from "../../types";
 import { db } from "./firebase";
 import { getSettings } from "./settings";
 import { buildingAt, Location } from "./buildings";
@@ -10,15 +10,12 @@ import { checkedInToday } from "./schoolTime";
 export type { Location };
 
 /**
- * Updates target.location for the chaser
- * so we can say where the chaser tagged their target out
- * (improves efficiency since Gotcha is read, not write heavy)
- * @param targetProfile
- * @param targetLocation
+ * Stores the caller's building only on their current living chaser's target.
+ * Reads at most two profiles and verifies both links in the same transaction.
  * @returns the building they're in, or null if they're in none
  */
 export const updateChaserTargetLocation = async (
-    targetProfile: Profile,
+    email: string,
     targetLocation: Location,
     building = buildingAt(targetLocation),
 ): Promise<string | null> => {
@@ -117,7 +114,7 @@ async function trySyncRoleClaim(request: CallableRequest, role: Role): Promise<v
  * When it changes, the client sees its token disagree with the returned role and
  * refreshes the token (see refreshAdminClaim in website/firebase.ts).
  */
-export const getProfile = onCall(async (request): Promise<Profile | null> => {
+export const getProfile = onCall(async (request): Promise<ClientProfile | null> => {
   const member = await requireRegisteredSchoolUser(request);
   // the roster role, not the token claim, which can outlive a demotion (see requireAdmin)
   const isAdmin = member.profile.role === "admin";
@@ -152,7 +149,7 @@ export const getProfile = onCall(async (request): Promise<Profile | null> => {
         // check-in still works without it (it only needs this call's location)
         await Promise.all([
             settings.locationEnabled ?
-                updateChaserTargetLocation(profile, location as Location, building) :
+                updateChaserTargetLocation(email, location as Location, building) :
                 null,
             checkIn(email, profile, building, settings),
         ]);

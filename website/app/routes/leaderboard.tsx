@@ -109,12 +109,12 @@ export default function Leaderboard({ loaderData }: Route.ComponentProps) {
         {
           leaderboard &&
           leaderboard.topTaggers && 
-          leaderboard.topTaggers.map(({ name , tags }: { name: string; tags: number }, index: number) => (
+          leaderboard.topTaggers.map(({ email, name, tags }: Leaderboard["topTaggers"][number], index: number) => (
             <LeaderboardCard
               name={name}
               tags={tags}
               position={index + 1}
-              key={index}
+              key={email}
             />
           ))
         }

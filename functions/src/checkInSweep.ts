@@ -28,7 +28,7 @@ async function markSwept(settings: GameSettings, dayKey: string) {
  * Each player is checked against their real profile first, since the admin index can be a
  * moment behind (e.g. they checked in just before the deadline).
  * Their chaser is set to "none": nobody tagged them, so they get no last words, nobody gets a
- * tag, revenge doesn't fire for them, and nobody's revenge brings them back.
+ * tag, revenge isn't applied, and nobody's revenge brings them back.
  */
 export async function removeMissedPlayers(emails: string[], now: number): Promise<{ removed: string[]; winner: string | null }> {
   return db.runTransaction(async (tx) => {

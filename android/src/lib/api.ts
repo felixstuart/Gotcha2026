@@ -20,11 +20,11 @@ import type {
   WireLeaderboard,
   ClientTaggedOutResponse,
 } from "@/generated/callables";
-import type { Leaderboard } from "@/generated/types";
 import { functions } from "./firebase";
 import { invalidate, KEYS } from "./cache";
 
-export type { GameSettings, LastWordsEntry, Profile, Leaderboard };
+export type { GameSettings, LastWordsEntry, Profile };
+export type Leaderboard = Omit<WireLeaderboard, "lastUpdated"> & { lastUpdated: number };
 
 /** Calls a callable by name. Request and response types follow from the name. */
 async function call<K extends CallableName>(

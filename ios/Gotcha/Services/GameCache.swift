@@ -46,8 +46,14 @@ final class GameCache {
 
     func load(uid: String) -> GameCacheSnapshot {
         guard let data = try? Data(contentsOf: file(for: uid)),
-              let snapshot = try? JSONDecoder().decode(GameCacheSnapshot.self, from: data) else {
+              var snapshot = try? JSONDecoder().decode(GameCacheSnapshot.self, from: data) else {
             return GameCacheSnapshot()
+        }
+        if let profile = snapshot.profile {
+            snapshot.profile = Stamped(
+                value: profile.value.withoutPrivateFields(), fetchedAt: profile.fetchedAt
+            )
+            save(snapshot, uid: uid) // Scrub hunter values from older saved profiles too.
         }
         return snapshot
     }
@@ -56,7 +62,7 @@ final class GameCache {
         var snapshot = snapshot
         if let profile = snapshot.profile {
             snapshot.profile = Stamped(
-                value: profile.value.withoutTargetLocation(),
+                value: profile.value.withoutPrivateFields(),
                 fetchedAt: profile.fetchedAt
             )
         }
