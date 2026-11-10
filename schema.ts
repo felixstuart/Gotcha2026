@@ -46,9 +46,8 @@ export interface FirestoreSchema {
    * nonempty lw entries by timestamp DESC, then lw ASC for ties, limited to ten.
    * Uses the timestamp DESC/lw ASC composite index in firestore.indexes.json.
    * Missing/older versions are rebuilt so old alphabetical results cannot persist.
-   * tagOut and nonempty setLastWords delete it in their write transactions.
+   * tagOut, nonempty setLastWords, and admin revival delete it in their write transactions.
    * Delete this document to rebuild on the next read.
-   * Existing gap: admin revival deletes last words without invalidating this cache.
    */
   "lastWordsIndex/main": { version: number; lastWords: LastWordsEntry[] };
 

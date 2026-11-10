@@ -14,6 +14,7 @@ import { ADMIN_INDEX_PATH, logAdminAction, toAdminIndexRow } from "./adminIndex"
 import { Chain } from "./chain";
 import { reviveVictims } from "./revenge";
 import { recordTagOut } from "./tagOutEvents";
+import { lastWordsIndexPath } from "./getLastWords";
 
 const ROLES: Role[] = ["admin", "player", "observer"];
 
@@ -315,9 +316,10 @@ export const adminUpdateProfile = onCall(async (request) => {
     if (changesAlive && alive === false) recordTagOut(db, tx, email, player);
     chain.save();
 
-    // An admin revival clears that player's displayed last words.
+    // Clear their displayed last words and invalidate the cached list together.
     if (changesAlive && alive === true) {
       tx.delete(db.doc(`lastWords/${email}`));
+      tx.delete(db.doc(lastWordsIndexPath));
     }
 
     // syncAdminIndex would do this a moment later, but writing the rows now means the index is
