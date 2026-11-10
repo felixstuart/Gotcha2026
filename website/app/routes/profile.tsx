@@ -2,7 +2,7 @@
 import { app, auth, functions, refreshAdminClaim } from "../../firebase";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { getFunctions, httpsCallable } from "firebase/functions";
-import { redirect, useNavigate } from "react-router";
+import { Await, redirect, useNavigate } from "react-router";
 import type { Route } from "../+types/root";
 import type {
   GameSettings,
@@ -50,14 +50,14 @@ export async function clientLoader() {
     return redirect("/app/admin/users");
   }
 
-  const getLastWords = httpsCallable(functions, "getLastWords");
-  const lastWordsResult = await getLastWords({});
-
+  const getLastWords = httpsCallable<unknown, ClientLastWordsResponse>(functions, "getLastWords");
+  // Show the profile now; only Last Words waits for this existing request.
+  const lastWords = getLastWords({}).then((result) => result.data);
 
   return {
     profile,
     user: user,
-    lastWords: lastWordsResult.data,
+    lastWords,
     settings: settingsResult.data,
   };
 }
@@ -142,7 +142,7 @@ export default function Profile({ loaderData }: Route.ComponentProps) {
   const { profile: loadedProfile, user, lastWords, settings } = loaderData as unknown as {
     profile: Profile;
     user: any;
-    lastWords: ClientLastWordsResponse;
+    lastWords: Promise<ClientLastWordsResponse>;
     settings: GameSettings;
   };
 
@@ -298,26 +298,44 @@ export default function Profile({ loaderData }: Route.ComponentProps) {
         </div>
         <div className="p-4">
           <h1 className="font-bold text-xl">Last Words</h1>
-          <div>
-            {lastWords.lastWords.map((lw: LastWordsEntry) => (
-              <div
-                key={lw.timestamp}
-                className="bg-slate-800 p-4 rounded-lg m-4"
-              >
-                <p className="italic text-white">"{lw.lw}"</p>
-                <p className="text-sm text-slate-300">
-                  - {lw.author} at{" "}
-                  {new Date(lw.timestamp).toLocaleString(undefined, {
-                    year: "numeric",
-                    month: "numeric",
-                    day: "numeric",
-                    hour: "numeric",
-                    minute: "2-digit",
-                  })}
-                </p>
+          <React.Suspense fallback={
+            <div role="status">
+              <span className="sr-only">Loading last words...</span>
+              <div aria-hidden="true" className="motion-safe:animate-pulse">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="bg-slate-800 p-4 rounded-lg m-4 space-y-3">
+                    <div className="h-4 w-3/4 rounded bg-slate-700" />
+                    <div className="h-3 w-1/3 rounded bg-slate-700" />
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          }>
+            <Await resolve={lastWords} errorElement={
+              <p role="alert" className="m-4 text-sm text-slate-300">
+                Last words couldn't be loaded. Refresh to try again.
+              </p>
+            }>
+              {(result: ClientLastWordsResponse) => result.lastWords.map((lw: LastWordsEntry) => (
+                <div
+                  key={lw.timestamp}
+                  className="bg-slate-800 p-4 rounded-lg m-4"
+                >
+                  <p className="italic text-white">"{lw.lw}"</p>
+                  <p className="text-sm text-slate-300">
+                    - {lw.author} at{" "}
+                    {new Date(lw.timestamp).toLocaleString(undefined, {
+                      year: "numeric",
+                      month: "numeric",
+                      day: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                </div>
+              ))}
+            </Await>
+          </React.Suspense>
         </div>
       </>
     );
