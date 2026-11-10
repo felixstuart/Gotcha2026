@@ -10,15 +10,12 @@ import { checkedInToday } from "./schoolTime";
 export type { Location };
 
 /**
- * Updates target.location for the chaser
- * so we can say where the chaser tagged their target out
- * (improves efficiency since Gotcha is read, not write heavy)
- * @param targetProfile
- * @param targetLocation
+ * Stores the caller's building only on their current living chaser's target.
+ * Reads at most two profiles and verifies both links in the same transaction.
  * @returns the building they're in, or null if they're in none
  */
 export const updateChaserTargetLocation = async (
-    targetProfile: Profile,
+    email: string,
     targetLocation: Location,
     building = buildingAt(targetLocation),
 ): Promise<string | null> => {
@@ -27,12 +24,16 @@ export const updateChaserTargetLocation = async (
         return null;
     }
 
-    targetProfile.location = building;
-    if (targetProfile.chaser && targetProfile.chaser !== "none") {
-        await db.collection("data").doc(targetProfile.chaser).update({
-          "target.location": building,
-        });
-    }
+    await db.runTransaction(async (tx) => {
+        const player = (await tx.get(db.doc(`data/${email}`))).data() as Profile | undefined;
+        if (!player?.alive || player.role !== "player" || !player.chaser || player.chaser === "none") return;
+
+        const chaserRef = db.doc(`data/${player.chaser}`);
+        const chaser = (await tx.get(chaserRef)).data() as Profile | undefined;
+        if (chaser?.alive && chaser.target?.email === email) {
+            tx.update(chaserRef, { "target.location": building });
+        }
+    });
     return building;
 };
 
@@ -134,7 +135,7 @@ export const getProfile = onCall(async (request): Promise<Profile | null> => {
         // check-in still works without it (it only needs this call's location)
         await Promise.all([
             settings.locationEnabled ?
-                updateChaserTargetLocation(profile, location as Location, building) :
+                updateChaserTargetLocation(email, location as Location, building) :
                 null,
             checkIn(email, profile, building, settings),
         ]);

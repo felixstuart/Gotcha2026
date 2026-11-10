@@ -16,6 +16,9 @@ export interface FirestoreSchema {
    * Chain saves affected profiles together in a transaction (all reads before writes).
    * target duplicates identity/location: relinking and renames must update that copy.
    * getProfile writes buildings to the chaser's target.location, not profile.location.
+   * A location update transaction reads the caller and their current chaser, verifies
+   * both are alive and the chaser still targets the caller, then writes only location.
+   * Missing/inactive players or mismatched links are skipped (at most two reads/one write).
    * The winner has chaser "none" and an empty target.email.
    */
   "data/{email}": Profile;

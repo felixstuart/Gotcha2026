@@ -63,7 +63,7 @@ describe("updateChaserTargetLocation", () => {
         const location = testPoints.science as Location;
         expect(jordanProfile.chaser).toBe("alex_chen@milton.edu");
 
-        await updateChaserTargetLocation(jordanProfile, location);
+        await updateChaserTargetLocation("jordan_lee@milton.edu", location);
         const chaserProfile = await getUserProfileByEmail("alex_chen@milton.edu");
         const targetLocationForChaser = chaserProfile?.target.location;
 
@@ -79,7 +79,7 @@ describe("updateChaserTargetLocation", () => {
         const originalChaserTargetLocation = await originalChaserProfile?.target.location;
 
         const location = testPoints.outside as Location;
-        await updateChaserTargetLocation(jordanProfile, location);
+        await updateChaserTargetLocation("jordan_lee@milton.edu", location);
 
         const newChaserProfile = await getUserProfileByEmail("alex_chen@milton.edu");
         const newChaserTargetLocation = await newChaserProfile?.target.location;
