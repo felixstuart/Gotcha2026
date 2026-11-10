@@ -10,7 +10,7 @@ import { ADMIN_INDEX_PATH, logAdminAction, toAdminIndexRow } from "./adminIndex"
  * to fill the index, or any time it looks out of sync.
  */
 export const rebuildAdminIndex = onCall(async (request) => {
-  const adminEmail = requireAdmin(request);
+  const adminEmail = await requireAdmin(request);
 
   const db = getFirestore();
   const profiles = await db.collection("data").get();

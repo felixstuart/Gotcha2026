@@ -124,8 +124,15 @@ export async function runCheckInSweep(now = Date.now()): Promise<SweepResult> {
 
   // another instance may have swept since our settings were cached
   const stored = withDefaults((await settingsDoc().get()).data() as Partial<GameSettings> | undefined);
-  if (stored.lastCheckInSweepDay === dayKey) {
-    setCachedSettings(stored);
+  setCachedSettings(stored);
+  if (stored.lastCheckInSweepDay === dayKey) return NOTHING;
+
+  // an admin may also have switched check-in off or moved the deadline since then. taking
+  // players out can't be undone in one click, so the decision is made again on what's saved
+  const dueNow = sweepDue(stored, now);
+  if (dueNow === "no") return NOTHING;
+  if (dueNow === "skip") {
+    await markSwept(stored, dayKey);
     return NOTHING;
   }
 

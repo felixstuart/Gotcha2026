@@ -198,7 +198,7 @@ async function randomAlivePlayer(
  * so the client can patch just those rows.
  */
 export const adminUpdateProfile = onCall(async (request) => {
-  const adminEmail = requireAdmin(request);
+  const adminEmail = await requireAdmin(request);
 
   const email = request.data?.email;
   if (typeof email !== "string" || email === "") {
@@ -235,6 +235,16 @@ export const adminUpdateProfile = onCall(async (request) => {
 
     if (Object.keys(diff).length === 0 && !changesAlive && !changesChaser && !changesTarget) {
       return { row: toAdminIndexRow(player), affected: {} };
+    }
+
+    // only players can be tagged out or miss check-in, so anyone else left in the loop would
+    // leave their chaser with a target who can never go out
+    const staysAlive = alive !== undefined ? alive : before.alive;
+    if (diff.role !== undefined && changes.role !== "player" && staysAlive) {
+      throw new HttpsError(
+        "failed-precondition",
+        "Only players can be in the game. Take them out first (set alive to false), then change their role",
+      );
     }
 
     // field changes go first, so any new target snapshots below already have the new name
@@ -316,7 +326,9 @@ export const adminUpdateProfile = onCall(async (request) => {
     if (changesAlive && alive === false) recordTagOut(db, tx, email, player);
     chain.save();
 
-    // Clear their displayed last words and invalidate the cached list together.
+    // a revived player's old last words go away, so their next tag out creates a new entry
+    // (updateLeaderboard only runs when the entry is created, not overwritten)
+    // the last words list is cached, so the cache goes too or they'd stay on show
     if (changesAlive && alive === true) {
       tx.delete(db.doc(`lastWords/${email}`));
       tx.delete(db.doc(lastWordsIndexPath));

@@ -9,7 +9,7 @@ import { ADMIN_INDEX_PATH } from "./adminIndex";
  * document (kept up to date by syncAdminIndex), so it's 1 read instead of 1 per player.
  */
 export const getAdminIndex = onCall(async (request) => {
-  requireAdmin(request);
+  await requireAdmin(request);
 
   const db = getFirestore();
   const indexSnap = await db.doc(ADMIN_INDEX_PATH).get();

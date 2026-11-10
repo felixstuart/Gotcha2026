@@ -1,5 +1,4 @@
 import { requireRegisteredSchoolUser, requestedEmail } from "./authorization";
-import { hasAdminClaim } from "./auth";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { AdminIndexRow } from "../../types";
 import { getFirestore } from "firebase-admin/firestore";
@@ -12,7 +11,8 @@ import { gamePhase, getSettings } from "./settings";
 
 export const tagOut = onCall(async (request) => {
   const member = await requireRegisteredSchoolUser(request);
-  const isAdmin = hasAdminClaim(request);
+  // the roster role, not the token claim, which can outlive a demotion (see requireAdmin)
+  const isAdmin = member.profile.role === "admin";
   const email = requestedEmail(request.data, member.email, isAdmin);
   // requestedEmail only lets admins pick someone else, so this is an admin tagging a player out
   const adminEmail = email !== member.email ? member.email : null;
@@ -79,8 +79,9 @@ export const tagOut = onCall(async (request) => {
     });
 
     // winner is set when this tag left only one player standing.
-    // rows are the admin table rows of everyone the tag changed
-    return { status: 200, ...result };
+    // rows are the admin table rows of everyone the tag changed. they include the chaser's
+    // email, which players must not learn, so only admins get them
+    return { status: 200, winner: result.winner, rows: isAdmin ? result.rows : {} };
   } catch (err) {
     // keep useful errors (like "already out") instead of hiding them behind a generic one
     if (err instanceof HttpsError) throw err;

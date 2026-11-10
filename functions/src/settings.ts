@@ -124,10 +124,14 @@ function parseSettingsUpdate(raw: unknown): Partial<GameSettings> {
   return update;
 }
 
-/** Returns the game settings. Anyone on the roster can read them (the app needs the times and switches) */
+/**
+ * Returns the game settings. Anyone on the roster can read them (the app needs the times and
+ * switches), but only admins are told which admin last changed them.
+ */
 export const getGameSettings = onCall(async (request): Promise<GameSettings> => {
-  await requireRegisteredSchoolUser(request);
-  return getSettings();
+  const member = await requireRegisteredSchoolUser(request);
+  const settings = await getSettings();
+  return member.profile.role === "admin" ? settings : { ...settings, updatedBy: null };
 });
 
 /**
@@ -136,7 +140,7 @@ export const getGameSettings = onCall(async (request): Promise<GameSettings> => 
  * so the update builds on what's really saved.
  */
 export const updateGameSettings = onCall(async (request): Promise<GameSettings> => {
-  const adminEmail = requireAdmin(request);
+  const adminEmail = await requireAdmin(request);
   const update = parseSettingsUpdate((request.data as { settings?: unknown } | null)?.settings);
 
   const settings = await db.runTransaction(async (tx) => {

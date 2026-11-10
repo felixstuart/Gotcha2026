@@ -3,6 +3,9 @@ import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { getFirestore } from "firebase-admin/firestore";
 import { lastWordsIndexPath } from "./getLastWords";
 
+// the same limit the website and apps put on the text box (lastWords.maxLength in shared/copy.json)
+const MAX_LENGTH = 60;
+
 /**
  * Sets the user's last words if they are tagging out
  * Deletes the last words index as the index will now be outdated
@@ -10,9 +13,14 @@ import { lastWordsIndexPath } from "./getLastWords";
 export const setLastWords = onCall(async (request) => {
   const member = await requireRegisteredSchoolUser(request);
 
-  const lastWords = request.data?.lastWords;
-  if (typeof lastWords !== "string" || lastWords.length > 1000) {
-    throw new HttpsError("invalid-argument", "lastWords must be a string of at most 1000 characters");
+  const raw = request.data?.lastWords;
+  if (typeof raw !== "string") {
+    throw new HttpsError("invalid-argument", "lastWords must be a string");
+  }
+  // trimmed first, so spaces alone count as saying nothing
+  const lastWords = raw.trim();
+  if (lastWords.length > MAX_LENGTH) {
+    throw new HttpsError("invalid-argument", `lastWords must be at most ${MAX_LENGTH} characters`);
   }
 
   const db = getFirestore();
