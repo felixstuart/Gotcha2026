@@ -9,10 +9,12 @@ import type {
   GameSettings,
   Leaderboard,
   LastWordsEntry,
-  Profile,
+  ClientProfile,
 } from "../types";
 
-export type { ClientLastWordsResponse, ClientTaggedOutResponse, GameSettings, LastWordsEntry, Profile };
+export type { ClientLastWordsResponse, ClientTaggedOutResponse, GameSettings, LastWordsEntry, ClientProfile };
+// Player clients use the response shape, not the stored chase-chain profile.
+export type { ClientProfile as Profile };
 
 // Callables that take no arguments are sent {}
 export type EmptyRequest = Record<string, never>;
@@ -38,7 +40,9 @@ export interface WireTimestamp {
 
 // leaderboard/main as getLeaderboard sends it. updateLeaderboard writes lastUpdated with
 // serverTimestamp(), so it arrives as a WireTimestamp rather than the number Leaderboard says.
-export interface WireLeaderboard extends Omit<Leaderboard, "lastUpdated"> {
+export interface WireLeaderboard extends Omit<Leaderboard, "lastUpdated" | "topTaggers"> {
+  // Older mobile caches predate email IDs; new server responses always include them.
+  topTaggers: Array<{ email?: string; name: string; tags: number }>;
   lastUpdated: WireTimestamp | number | null;
 }
 
@@ -48,7 +52,7 @@ export interface GetLeaderboardResponse {
 
 // Request and response types by function name. Must match callables.json
 export interface Callables {
-  getProfile: { request: GetProfileRequest; response: Profile | null };
+  getProfile: { request: GetProfileRequest; response: ClientProfile | null };
   getGameSettings: { request: EmptyRequest; response: GameSettings };
   getLeaderboard: { request: EmptyRequest; response: GetLeaderboardResponse };
   getLastWords: { request: EmptyRequest; response: ClientLastWordsResponse };

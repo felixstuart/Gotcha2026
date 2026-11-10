@@ -1,7 +1,7 @@
 import { requireRegisteredSchoolUser, requestedEmail } from "./authorization";
 import { hasAdminClaim, syncRoleClaim } from "./auth";
 import { CallableRequest, HttpsError, onCall } from "firebase-functions/v2/https";
-import { GameSettings, Profile, Role } from "../../types";
+import { ClientProfile, GameSettings, Profile, Role } from "../../types";
 import { db } from "./firebase";
 import { getSettings } from "./settings";
 import { buildingAt, Location } from "./buildings";
@@ -102,7 +102,7 @@ async function trySyncRoleClaim(request: CallableRequest, role: Role): Promise<v
  * When it changes, the client sees its token disagree with the returned role and
  * refreshes the token (see refreshAdminClaim in website/firebase.ts).
  */
-export const getProfile = onCall(async (request): Promise<Profile | null> => {
+export const getProfile = onCall(async (request): Promise<ClientProfile | null> => {
   const member = await requireRegisteredSchoolUser(request);
   const email = requestedEmail(request.data, member.email, hasAdminClaim(request));
   const ownProfile = email === member.email;
@@ -145,12 +145,14 @@ export const getProfile = onCall(async (request): Promise<Profile | null> => {
         await trySyncRoleClaim(request, member.profile.role);
     }
 
-    // the building stays saved either way, it's only left out of what players get back.
-    // admins always see it
-    if (profile?.target?.location !== undefined && !hasAdminClaim(request) &&
+    if (!profile || hasAdminClaim(request)) return profile;
+
+    // Redact the response only; gameplay keeps the stored hunter relationship.
+    const { chaser: _hunter, ...visibleProfile } = profile;
+    if (visibleProfile.target?.location !== undefined &&
         !canSeeTargetLocation(settings, sharedLocation)) {
-        return { ...profile, target: { ...profile.target, location: undefined } };
+        return { ...visibleProfile, target: { ...visibleProfile.target, location: undefined } };
     }
 
-    return profile;
+    return visibleProfile;
 });

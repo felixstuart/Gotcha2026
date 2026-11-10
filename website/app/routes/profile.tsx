@@ -7,7 +7,7 @@ import type { Route } from "../+types/root";
 import type {
   GameSettings,
   ClientLastWordsResponse,
-  Profile,
+  ClientProfile as Profile,
   ClientTaggedOutResponse,
   LastWordsEntry,
 } from "../../../types";

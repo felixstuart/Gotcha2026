@@ -30,6 +30,62 @@ nonisolated struct LastWordsEntry: Codable, Equatable, Sendable {
     }
 }
 
+// MARK: - ClientProfile
+nonisolated struct ClientProfile: Codable, Equatable, Sendable {
+    let activeTagOutEvent: String?
+    let alive: Bool
+    let chaser: String?
+    let checkedInAt: Double?
+    let className: String
+    let dayorboard: String
+    let firstName: String
+    let lastEditedAt: Double?
+    let lastEditedBy: String?
+    let lastName: String
+    let location: String?
+    let role: Role
+    let tags: Int
+    let target: Target
+
+    enum CodingKeys: String, CodingKey {
+        case activeTagOutEvent = "activeTagOutEvent"
+        case alive = "alive"
+        case chaser = "chaser"
+        case checkedInAt = "checkedInAt"
+        case className = "class"
+        case dayorboard = "dayorboard"
+        case firstName = "firstName"
+        case lastEditedAt = "lastEditedAt"
+        case lastEditedBy = "lastEditedBy"
+        case lastName = "lastName"
+        case location = "location"
+        case role = "role"
+        case tags = "tags"
+        case target = "target"
+    }
+}
+
+nonisolated enum Role: String, Codable, Equatable, Sendable {
+    case admin = "admin"
+    case observer = "observer"
+    case player = "player"
+}
+
+// MARK: - Target
+nonisolated struct Target: Codable, Equatable, Sendable {
+    let email: String
+    let firstName: String
+    let lastName: String
+    let location: String?
+
+    enum CodingKeys: String, CodingKey {
+        case email = "email"
+        case firstName = "firstName"
+        case lastName = "lastName"
+        case location = "location"
+    }
+}
+
 // MARK: - ClientTaggedOutResponse
 nonisolated struct ClientTaggedOutResponse: Codable, Equatable, Sendable {
     let rows: [String: AdminIndexRow]
@@ -72,12 +128,6 @@ nonisolated struct AdminIndexRow: Codable, Equatable, Sendable {
         case tags = "tags"
         case targetEmail = "targetEmail"
     }
-}
-
-nonisolated enum Role: String, Codable, Equatable, Sendable {
-    case admin = "admin"
-    case observer = "observer"
-    case player = "player"
 }
 
 // MARK: - GameSettings
@@ -205,10 +255,12 @@ nonisolated struct WireTimestamp: Codable, Equatable, Sendable {
 
 // MARK: - TopTagger
 nonisolated struct TopTagger: Codable, Equatable, Sendable {
+    let email: String?
     let name: String
     let tags: Int
 
     enum CodingKeys: String, CodingKey {
+        case email = "email"
         case name = "name"
         case tags = "tags"
     }
@@ -219,54 +271,6 @@ nonisolated struct GetProfileRequest: Codable, Equatable, Sendable {
     let location: [Double]?
 
     enum CodingKeys: String, CodingKey {
-        case location = "location"
-    }
-}
-
-// MARK: - Profile
-nonisolated struct Profile: Codable, Equatable, Sendable {
-    let alive: Bool
-    let chaser: String
-    let checkedInAt: Double?
-    let className: String
-    let dayorboard: String
-    let firstName: String
-    let lastEditedAt: Double?
-    let lastEditedBy: String?
-    let lastName: String
-    let location: String?
-    let role: Role
-    let tags: Int
-    let target: Target
-
-    enum CodingKeys: String, CodingKey {
-        case alive = "alive"
-        case chaser = "chaser"
-        case checkedInAt = "checkedInAt"
-        case className = "class"
-        case dayorboard = "dayorboard"
-        case firstName = "firstName"
-        case lastEditedAt = "lastEditedAt"
-        case lastEditedBy = "lastEditedBy"
-        case lastName = "lastName"
-        case location = "location"
-        case role = "role"
-        case tags = "tags"
-        case target = "target"
-    }
-}
-
-// MARK: - Target
-nonisolated struct Target: Codable, Equatable, Sendable {
-    let email: String
-    let firstName: String
-    let lastName: String
-    let location: String?
-
-    enum CodingKeys: String, CodingKey {
-        case email = "email"
-        case firstName = "firstName"
-        case lastName = "lastName"
         case location = "location"
     }
 }

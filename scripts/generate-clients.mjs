@@ -37,7 +37,7 @@ const copy = readJson("shared/copy.json");
 
 // Types the apps decode or send. Nested types (Target, AdminIndexRow, ...) come along with them.
 const TOP_LEVEL_TYPES = [
-  "Profile",
+  "ClientProfile",
   "GameSettings",
   "GetLeaderboardResponse",
   "ClientLastWordsResponse",

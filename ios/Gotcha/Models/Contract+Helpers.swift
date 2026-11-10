@@ -8,6 +8,9 @@
 
 import Foundation
 
+// App profiles use the callable response, whose hunter field is absent for players.
+typealias Profile = ClientProfile
+
 extension Profile {
     var fullName: String { "\(firstName) \(lastName)" }
 
@@ -21,12 +24,12 @@ extension Profile {
         return SchoolTime.isSameDay(Date(milliseconds: checkedInAt), Date())
     }
 
-    /// The same profile without the target's building. That only ever comes in the response
-    /// to a call where it's allowed (share to see), so it's never kept on disk.
-    func withoutTargetLocation() -> Profile {
+    /// Neither the hunter nor a temporarily revealed target building belongs on disk.
+    func withoutPrivateFields() -> Profile {
         Profile(
+            activeTagOutEvent: activeTagOutEvent,
             alive: alive,
-            chaser: chaser,
+            chaser: nil,
             checkedInAt: checkedInAt,
             className: className,
             dayorboard: dayorboard,

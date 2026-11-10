@@ -19,6 +19,13 @@ export interface FirestoreSchema {
    * A location update transaction reads the caller and their current chaser, verifies
    * both are alive and the chaser still targets the caller, then writes only location.
    * Missing/inactive players or mismatched links are skipped (at most two reads/one write).
+   * getProfile returns ClientProfile: non-admin responses omit chaser on every path;
+   * admin custom-claim callers retain it. Stored Profile and chain links are unchanged.
+   * Mobile response models accept a missing hunter; old profile caches are scrubbed.
+   * iOS GameCache and Android cache strip hunter identity on cache read/write;
+   * disk caches also omit target.location so a revealed building is not persisted.
+   * WireLeaderboard accepts missing email IDs in old mobile cache entries; newly
+   * written leaderboard/main entries still require email. Keep cache decoding compatible.
    * The winner has chaser "none" and an empty target.email.
    */
   "data/{email}": Profile;

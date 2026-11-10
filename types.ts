@@ -27,6 +27,12 @@ export interface Profile {
   activeTagOutEvent?: string;
 }
 
+// getProfile omits the hunter for non-admins; admins may receive the stored value.
+// Keep the database Profile strict: chain operations always require a chaser.
+export interface ClientProfile extends Omit<Profile, "chaser"> {
+  chaser?: string;
+}
+
 // One document per elimination, including repeat eliminations of the same player.
 export interface TagOutEvent {
   tagger: string;
