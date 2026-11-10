@@ -12,6 +12,8 @@ import {
 import { requireAdmin } from "./auth";
 import { ADMIN_INDEX_PATH, logAdminAction, toAdminIndexRow } from "./adminIndex";
 import { Chain } from "./chain";
+import { reviveVictims } from "./revenge";
+import { recordTagOut } from "./tagOutEvents";
 
 const ROLES: Role[] = ["admin", "player", "observer"];
 
@@ -68,9 +70,8 @@ function parseChanges(raw: unknown): AdminProfileChanges {
  * Rebuilds topTaggers from every player in the admin index, with the edited player's new values.
  * This is what lets the next-best player move up when a top tagger's tags go down.
  *
- * The index can lag a second behind a tag out (it's updated by a trigger), while the leaderboard
- * is updated in the same transaction as every tag. So for anyone already on the leaderboard,
- * its count wins; the index only fills in everyone else.
+ * Existing entries use their leaderboard totals; the index supplies everyone else.
+ * Score events are asynchronous, so this is not a full rebuild from profiles.
  */
 function topTaggersFromIndex(
   leaderboard: Leaderboard,
@@ -183,7 +184,7 @@ async function randomAlivePlayer(
  * Lets an admin edit a player (see AdminProfileChanges for what can change).
  *
  * Chain changes keep the loop of chasers and targets intact (see chain.ts):
- * - `alive: false` takes them out of the game without anyone getting a tag (use tagOut for a tag)
+ * - `alive: false` takes them out without awarding a tag, and revives their victims if revenge is on
  * - `alive: true` revives them, after `chaser` / before `targetEmail` if given. Otherwise they go
  *   back in the closest spot (see Chain.closestAliveChaser), or after a random alive player if
  *   they've never played. This is also how observers join the game
@@ -248,6 +249,7 @@ export const adminUpdateProfile = onCall(async (request) => {
         throw new HttpsError("invalid-argument", "Taking a player out can't be combined with moving them");
       }
       await chain.remove(email);
+      await reviveVictims(db, tx, chain, email);
     } else if (changesAlive && alive === true) {
       // revive after the chosen chaser, before the chosen target, or in the closest spot
       let anchor: string | null;
@@ -310,10 +312,10 @@ export const adminUpdateProfile = onCall(async (request) => {
       profile.lastEditedBy = adminEmail;
       profile.lastEditedAt = now;
     }
+    if (changesAlive && alive === false) recordTagOut(db, tx, email, player);
     chain.save();
 
-    // a revived player's old last words go away, so their next tag out creates a new entry
-    // (updateLeaderboard only runs when the entry is created, not overwritten)
+    // An admin revival clears that player's displayed last words.
     if (changesAlive && alive === true) {
       tx.delete(db.doc(`lastWords/${email}`));
     }

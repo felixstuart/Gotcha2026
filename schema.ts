@@ -1,0 +1,88 @@
+import type {
+  AdminIndex, AdminLogEntry, GameSettings, LastWordsEntry,
+  Leaderboard, Profile, TagOutEvent,
+} from "./types";
+
+/**
+ * Firestore document paths and their shapes. Field definitions live in types.ts.
+ * Emails identify players; event/log IDs are generated. Times are Unix milliseconds
+ * unless noted. Omit optional values instead of writing undefined.
+ * Clients use Cloud Functions; firestore.rules denies direct database access.
+ * These types describe the schema; they do not validate stored documents at runtime.
+ */
+export interface FirestoreSchema {
+  /**
+   * Current game state. Alive players' target.email/chaser links form a loop.
+   * Chain saves affected profiles together in a transaction (all reads before writes).
+   * target duplicates identity/location: relinking and renames must update that copy.
+   * getProfile writes buildings to the chaser's target.location, not profile.location.
+   * The winner has chaser "none" and an empty target.email.
+   */
+  "data/{email}": Profile;
+
+  /**
+   * One event per elimination, including repeat eliminations of the same victim.
+   * Created atomically with the victim's activeTagOutEvent pointer.
+   * Revival clears that pointer and closes the event (active=false) in the same tx.
+   * score is omitted for admin removals and imported history; check-in creates no event.
+   * Revenge queries tagger==email, active==true, timestamp ASC using the composite
+   * index in firestore.indexes.json, then checks each victim's current event pointer.
+   * No time cutoff, local sort, or traversal of unrelated players.
+   */
+  "tagOutEvents/{eventId}": TagOutEvent;
+
+  /**
+   * Latest display entry, overwritten on repeat elimination; not an event history.
+   * Written by tagOut/setLastWords; admin revival deletes it, revenge retains it.
+   * Changes to displayed entries must invalidate lastWordsIndex/main.
+   */
+  "lastWords/{email}": LastWordsEntry;
+
+  /**
+   * Response cache built by getLastWords on a miss; no TTL.
+   * tagOut and nonempty setLastWords delete it in their write transactions.
+   * Delete this document to rebuild on the next read.
+   * Existing gaps: admin revival does not invalidate it; the query sorts by lw
+   * before timestamp, so the cached ten entries are not necessarily the newest ten.
+   */
+  "lastWordsIndex/main": { lastWords: LastWordsEntry[] };
+
+  /**
+   * Derived scores, read by getLeaderboard. updateLeaderboard processes event.score
+   * asynchronously; leaderboardUpdated and aggregate writes commit in one transaction
+   * so redelivery cannot count twice. Closing an event does not revoke its score.
+   * Admin corrections also adjust aggregates in the profile-edit transaction.
+   * Top entries still use names, so namesakes and delayed events overlapping admin
+   * corrections need separate reconciliation. There is no general rebuild endpoint.
+   * lastUpdated is a server timestamp in event writes; the shared client model and
+   * seed data currently represent it as milliseconds (an existing type mismatch).
+   */
+  "leaderboard/main": Omit<Leaderboard, "lastUpdated"> & {
+    lastUpdated: number | { readonly seconds: number; readonly nanoseconds: number };
+  };
+
+  /**
+   * Materialized profile rows without location or event pointers; used by the admin
+   * table and check-in sweep. tagOut/admin edits/sweep write affected rows atomically.
+   * syncAdminIndex also merges profile changes/deletions and skips location-only writes.
+   * rebuildAdminIndex replaces the whole view from data if missing or stale.
+   * The sweep rechecks candidate profiles before removing anyone.
+   */
+  "adminIndex/main": AdminIndex;
+
+  /**
+   * Audit entries written in the same transaction as admin actions/check-in sweeps.
+   * Ordinary player tags are recorded in tagOutEvents instead.
+   * getAdminLog queries at DESC, limited to 50 entries.
+   */
+  "adminLog/{id}": AdminLogEntry;
+
+  /**
+   * Settings with missing values filled by DEFAULT_SETTINGS in settings.ts.
+   * getSettings caches per instance for 30 seconds (SETTINGS_CACHE_TTL_MS overrides).
+   * Admin updates and sweep markers refresh the writer's cache; other instances
+   * can retain old values until TTL expiry. Deadline/day keys use America/New_York.
+   * Buildings are generated from GeoJSON; Auth custom claims are outside Firestore.
+   */
+  "config/game": GameSettings;
+}

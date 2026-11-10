@@ -6,6 +6,8 @@ import { getFirestore } from "firebase-admin/firestore";
 import { lastWordsIndexPath } from "./getLastWords";
 import { ADMIN_INDEX_PATH, logAdminAction, toAdminIndexRow } from "./adminIndex";
 import { Chain } from "./chain";
+import { reviveVictims } from "./revenge";
+import { recordTagOut } from "./tagOutEvents";
 import { gamePhase, getSettings } from "./settings";
 
 export const tagOut = onCall(async (request) => {
@@ -35,11 +37,16 @@ export const tagOut = onCall(async (request) => {
       // throws if they're already out (e.g. a double click), so nobody gets a tag twice,
       // or if the chain around them has changed. their chaser now chases their target
       const { chaserEmail, winner } = await chain.remove(email);
+      const revived = await reviveVictims(db, tx, chain, email);
 
       const chaser = await chain.load(chaserEmail);
       chaser.tags += 1;
       chain.touch(chaserEmail);
 
+      recordTagOut(db, tx, email, user, {
+        name: `${chaser.firstName} ${chaser.lastName}`,
+        class: chaser.class, dorm: chaser.dayorboard, tags: chaser.tags,
+      });
       chain.save();
 
       // write the changed admin table rows now (syncAdminIndex would a moment later),
@@ -61,14 +68,14 @@ export const tagOut = onCall(async (request) => {
 
       // A revived player can be tagged out again, replacing their old entry.
       tx.delete(db.doc(lastWordsIndexPath));
-      // creating this also triggers updateLeaderboard
+      // Last words are display data; the tag-out event drives leaderboard updates.
       tx.set(db.doc(`lastWords/${email}`), {
         lw: "",
         author: `${user.firstName} ${user.lastName}`,
         timestamp: Date.now(),
       });
 
-      return { winner, rows };
+      return { winner: revived > 0 ? null : winner, rows };
     });
 
     // winner is set when this tag left only one player standing.

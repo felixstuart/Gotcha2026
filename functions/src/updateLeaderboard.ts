@@ -1,105 +1,44 @@
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
-import { Profile, Leaderboard } from "../../types";
-import {
-  onDocumentCreatedWithAuthContext,
-} from "firebase-functions/firestore";
+import { Leaderboard, TagOutEvent } from "../../types";
+import { onDocumentCreated } from "firebase-functions/v2/firestore";
 
-export const updateLeaderboard = onDocumentCreatedWithAuthContext(
-  "lastWords/{userEmail}",
+// A separate event is created for every tag, even when the victim was revived before.
+export const updateLeaderboard = onDocumentCreated(
+  { document: "tagOutEvents/{eventId}", retry: true },
   async (event) => {
+    if (!event.data?.data().score) return;
     const db = getFirestore();
+    await db.runTransaction(async (tx) => {
+      const ref = db.doc(`tagOutEvents/${event.params.eventId}`);
+      const tag = (await tx.get(ref)).data() as TagOutEvent;
+      if (tag.leaderboardUpdated || !tag.score) return;
 
-    try {
-      await db.runTransaction(async (tx) => {
-        const tageeEmail = event.params.userEmail;
-        const tageeDoc = db.doc(`data/${tageeEmail}`);
+      const boardRef = db.doc("leaderboard/main");
+      const board = (await tx.get(boardRef)).data() as Leaderboard | undefined;
+      const score = tag.score;
+      const topTaggers = [...(board?.topTaggers ?? [])];
+      const existing = topTaggers.find((entry) => entry.name === score.name);
+      // Cumulative totals keep delayed or out-of-order events from double counting.
+      if (existing) existing.tags = Math.max(existing.tags, score.tags);
+      else topTaggers.push({ name: score.name, tags: score.tags });
+      topTaggers.sort((a, b) => b.tags - a.tags || a.name.localeCompare(b.name));
 
-        // pull the leaderboard
-        const leaderboardDoc = db.doc("leaderboard/main");
+      const byDorms = (board?.byDorms ?? []).map((entry) => ({ ...entry }));
+      const dorm = byDorms.find((entry) => entry.dorm === score.dorm);
+      if (dorm) dorm.tags++;
+      else byDorms.push({ dorm: score.dorm, tags: 1 });
 
-        const tageeSnap = await tx.get(tageeDoc);
-        const tageeProfile = tageeSnap.data() as Profile;
+      const byClass = (board?.byClass ?? []).map((entry) => ({ ...entry }));
+      const schoolClass = byClass.find((entry) => entry.class === score.class);
+      if (schoolClass) schoolClass.tags++;
+      else byClass.push({ class: score.class, tags: 1 });
 
-        const chaserDoc = db.doc(`data/${tageeProfile.chaser}`);
-        const chaserSnap = await tx.get(chaserDoc);
-        const chaserProfile = chaserSnap.data() as Profile;
-
-        const leaderboardSnap = await tx.get(leaderboardDoc);
-        const leaderboard = leaderboardSnap.data() as Leaderboard;
-
-        const updates: any = {};
-
-        // now, check if the chaser is in the topTaggers or if they qualify to be
-        // if they are, just increment the topTagger[chaser] count
-        if (
-          leaderboard.topTaggers.some(
-            (tagger) =>
-              tagger.name ===
-              `${chaserProfile.firstName} ${chaserProfile.lastName}`
-          )
-        ) {
-          updates.topTaggers = leaderboard.topTaggers.map((tagger) => {
-            if (
-              tagger.name ===
-              `${chaserProfile.firstName} ${chaserProfile.lastName}`
-            ) {
-              return {
-                name: tagger.name,
-                tags: tagger.tags + 1,
-              };
-            } else {
-              return tagger;
-            }
-          });
-        } else {
-          // otherwise, see if they qualify to be in the topTaggers
-          const minTags = Math.min(
-            ...leaderboard.topTaggers.map((tagger) => tagger.tags)
-          );
-          if (chaserProfile.tags > minTags) {
-            // they qualify. add them to the topTaggers and trim the list
-            const newTopTaggers = leaderboard.topTaggers
-              .concat([
-                {
-                  name: `${chaserProfile.firstName} ${chaserProfile.lastName}`,
-                  tags: chaserProfile.tags,
-                },
-              ])
-              .sort((a, b) => b.tags - a.tags)
-              .slice(0, leaderboard.topTaggers.length);
-
-            updates.topTaggers = newTopTaggers;
-          }
-        }
-        // now, update dorm and class leaderboards
-        updates.byDorms = leaderboard.byDorms.map((dormEntry) => {
-          if (dormEntry.dorm === chaserProfile.dayorboard) {
-            return {
-              dorm: dormEntry.dorm,
-              tags: dormEntry.tags + 1,
-            };
-          } else {
-            return dormEntry;
-          }
-        });
-
-        updates.byClass = leaderboard.byClass.map((classEntry) => {
-          if (classEntry.class === chaserProfile.class) {
-            return {
-              class: classEntry.class,
-              tags: classEntry.tags + 1,
-            };
-          }
-          return classEntry;
-        });
-
-        updates.lastUpdated = FieldValue.serverTimestamp();
-
-        tx.update(leaderboardDoc, updates);
+      tx.set(boardRef, {
+        topTaggers: topTaggers.slice(0, 10),
+        byDorms, byClass, lastUpdated: FieldValue.serverTimestamp(),
       });
-      return;
-    } catch (error) {
-      return error;
-    }
-  }
+      // The marker and aggregates commit together, so trigger retries count once.
+      tx.update(ref, { leaderboardUpdated: true });
+    });
+  },
 );
