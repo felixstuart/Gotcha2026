@@ -4,34 +4,34 @@ import { getFirestore } from "firebase-admin/firestore";
 import { ClientLastWordsResponse, LastWordsEntry } from "../../types";
 
 export const lastWordsIndexPath = "lastWordsIndex/main";
+const CACHE_VERSION = 2;
 
 /**
- * Gets the last 10 words (for display)
- * If the prior cache was deleted due to being outdated,
- * creates a new cache of the last 10 last words as a side effect as well.
+ * Gets the newest 10 nonempty entries by their stored tag-out timestamp.
+ * Cache version 2 ignores older responses selected alphabetically.
  */
 export const getLastWords = onCall(async (request): Promise<ClientLastWordsResponse> => {
   await requireRegisteredSchoolUser(request);
 
   const db = getFirestore();
   const index = db.doc(lastWordsIndexPath);
-  const cached = await index.get();
-  if (cached.exists) return cached.data() as ClientLastWordsResponse;
+  const cached = (await index.get()).data();
+  if (cached?.version === CACHE_VERSION) return { lastWords: cached.lastWords };
 
   return db.runTransaction(async (tx) => {
-    const cached = await tx.get(index);
-    if (cached.exists) return cached.data() as ClientLastWordsResponse;
+    const cached = (await tx.get(index)).data();
+    if (cached?.version === CACHE_VERSION) return { lastWords: cached.lastWords };
 
     const snaps = await tx.get(db
       .collection("lastWords")
       .where("lw", "!=", "")
-      .orderBy("lw")
       .orderBy("timestamp", "desc")
+      .orderBy("lw")
       .limit(10));
 
     const lastWords = snaps.docs.map((doc) => doc.data()) as LastWordsEntry[];
     const result = { lastWords };
-    tx.set(index, result);
+    tx.set(index, { ...result, version: CACHE_VERSION });
     return result;
   });
 });

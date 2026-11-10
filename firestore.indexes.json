@@ -13,8 +13,8 @@
       "collectionGroup": "lastWords",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "lw", "order": "ASCENDING" },
-        { "fieldPath": "timestamp", "order": "DESCENDING" }
+        { "fieldPath": "timestamp", "order": "DESCENDING" },
+        { "fieldPath": "lw", "order": "ASCENDING" }
       ]
     }
   ],

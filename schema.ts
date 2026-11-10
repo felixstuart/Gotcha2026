@@ -39,13 +39,15 @@ export interface FirestoreSchema {
   "lastWords/{email}": LastWordsEntry;
 
   /**
-   * Response cache built by getLastWords on a miss; no TTL.
+   * Response cache built by getLastWords on a miss; no TTL. Version 2 selects
+   * nonempty lw entries by timestamp DESC, then lw ASC for ties, limited to ten.
+   * Uses the timestamp DESC/lw ASC composite index in firestore.indexes.json.
+   * Missing/older versions are rebuilt so old alphabetical results cannot persist.
    * tagOut and nonempty setLastWords delete it in their write transactions.
    * Delete this document to rebuild on the next read.
-   * Existing gaps: admin revival does not invalidate it; the query sorts by lw
-   * before timestamp, so the cached ten entries are not necessarily the newest ten.
+   * Existing gap: admin revival deletes last words without invalidating this cache.
    */
-  "lastWordsIndex/main": { lastWords: LastWordsEntry[] };
+  "lastWordsIndex/main": { version: number; lastWords: LastWordsEntry[] };
 
   /**
    * Derived scores, read by getLeaderboard. updateLeaderboard processes event.score
