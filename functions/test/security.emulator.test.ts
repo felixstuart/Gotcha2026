@@ -73,7 +73,7 @@ describe("real Firebase security boundaries", () => {
       const result = await call(name, tokens[email]);
       expect(result.body.error?.status, name).toBe("PERMISSION_DENIED");
     }
-  });
+  }, 30000); // the first call to each function starts it up, which can take a few seconds
   it("allows a registered student to read their own profile", async () => {
     const result = await call("getProfile", tokens[student]);
     expect(result.status).toBe(200);

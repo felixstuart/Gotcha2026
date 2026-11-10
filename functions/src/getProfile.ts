@@ -1,5 +1,5 @@
 import { requireRegisteredSchoolUser, requestedEmail } from "./authorization";
-import { hasAdminClaim, syncRoleClaim } from "./auth";
+import { syncRoleClaim } from "./auth";
 import { CallableRequest, HttpsError, onCall } from "firebase-functions/v2/https";
 import { GameSettings, Profile, Role } from "../../types";
 import { db } from "./firebase";
@@ -29,9 +29,15 @@ export const updateChaserTargetLocation = async (
 
     targetProfile.location = building;
     if (targetProfile.chaser && targetProfile.chaser !== "none") {
-        await db.collection("data").doc(targetProfile.chaser).update({
-          "target.location": building,
-        });
+        try {
+            await db.collection("data").doc(targetProfile.chaser).update({
+              "target.location": building,
+            });
+        } catch (err) {
+            // e.g. the chaser's profile was deleted. sharing a location is best-effort,
+            // so it shouldn't stop the player's own profile from loading
+            console.error("couldn't save the building for the chaser:", err);
+        }
     }
     return building;
 };
@@ -70,6 +76,16 @@ export function canSeeTargetLocation(settings: GameSettings, sharedLocation: boo
 }
 
 /**
+ * What a player gets back about themselves. Who is chasing them is the one thing the game
+ * keeps from them, so `chaser` is blanked (not removed: the apps expect a string there),
+ * and which admin last edited them is left out.
+ */
+export function forPlayer(profile: Profile): Profile {
+    const { lastEditedBy: _by, lastEditedAt: _at, ...rest } = profile;
+    return { ...rest, chaser: "" };
+}
+
+/**
  * Get a profile based on an email.
  * Assumes you've already validated permissions.
  * Outputs null if no profile found.
@@ -103,7 +119,9 @@ async function trySyncRoleClaim(request: CallableRequest, role: Role): Promise<v
  */
 export const getProfile = onCall(async (request): Promise<Profile | null> => {
   const member = await requireRegisteredSchoolUser(request);
-  const email = requestedEmail(request.data, member.email, hasAdminClaim(request));
+  // the roster role, not the token claim, which can outlive a demotion (see requireAdmin)
+  const isAdmin = member.profile.role === "admin";
+  const email = requestedEmail(request.data, member.email, isAdmin);
   const ownProfile = email === member.email;
 
     const profile = ownProfile ? member.profile : await getUserProfileByEmail(email);
@@ -146,10 +164,11 @@ export const getProfile = onCall(async (request): Promise<Profile | null> => {
 
     // the building stays saved either way, it's only left out of what players get back.
     // admins always see it
-    if (profile?.target?.location !== undefined && !hasAdminClaim(request) &&
-        !canSeeTargetLocation(settings, sharedLocation)) {
-        return { ...profile, target: { ...profile.target, location: undefined } };
+    if (!profile || isAdmin) return profile;
+
+    if (profile.target?.location !== undefined && !canSeeTargetLocation(settings, sharedLocation)) {
+        return forPlayer({ ...profile, target: { ...profile.target, location: undefined } });
     }
 
-    return profile;
+    return forPlayer(profile);
 });

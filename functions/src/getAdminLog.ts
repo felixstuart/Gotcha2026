@@ -7,7 +7,7 @@ import { requireAdmin } from "./auth";
  * The most recent admin actions, newest first (1 read per entry returned).
  */
 export const getAdminLog = onCall(async (request) => {
-  requireAdmin(request);
+  await requireAdmin(request);
 
   const db = getFirestore();
   const snaps = await db

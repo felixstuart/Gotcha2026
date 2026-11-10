@@ -18,14 +18,27 @@ export const updateLeaderboard = onDocumentCreatedWithAuthContext(
         const leaderboardDoc = db.doc("leaderboard/main");
 
         const tageeSnap = await tx.get(tageeDoc);
-        const tageeProfile = tageeSnap.data() as Profile;
+        const tageeProfile = tageeSnap.data() as Profile | undefined;
+        // nobody to credit, e.g. the profile was deleted, or nobody was chasing them
+        if (!tageeProfile?.chaser || tageeProfile.chaser === "none") {
+          console.warn(`updateLeaderboard: no chaser to credit for ${tageeEmail}`);
+          return;
+        }
 
         const chaserDoc = db.doc(`data/${tageeProfile.chaser}`);
         const chaserSnap = await tx.get(chaserDoc);
-        const chaserProfile = chaserSnap.data() as Profile;
+        const chaserProfile = chaserSnap.data() as Profile | undefined;
+        if (!chaserProfile) {
+          console.warn(`updateLeaderboard: no profile for ${tageeProfile.chaser}, who tagged ${tageeEmail}`);
+          return;
+        }
 
         const leaderboardSnap = await tx.get(leaderboardDoc);
-        const leaderboard = leaderboardSnap.data() as Leaderboard;
+        const leaderboard = leaderboardSnap.data() as Leaderboard | undefined;
+        if (!leaderboard) {
+          console.error("updateLeaderboard: leaderboard/main doesn't exist, so the tag wasn't counted");
+          return;
+        }
 
         const updates: any = {};
 
@@ -99,7 +112,9 @@ export const updateLeaderboard = onDocumentCreatedWithAuthContext(
       });
       return;
     } catch (error) {
-      return error;
+      // logged, not thrown: a retry could count the same tag twice
+      console.error(`updateLeaderboard failed for ${event.params.userEmail}:`, error);
+      return;
     }
   }
 );

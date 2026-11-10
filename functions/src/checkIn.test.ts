@@ -13,6 +13,7 @@ const wrappedGetProfile = testEnv.wrap(getProfile);
 // a loop of four players of our own: a -> b -> c -> d -> a (each chases the next)
 const loop = ["ci_a", "ci_b", "ci_c", "ci_d"].map((name) => `${name}@milton.edu`);
 const [A, B, C, D] = loop;
+const ADMIN = "ci_admin@milton.edu";
 
 function profileFor(i: number): Profile {
   const next = loop[(i + 1) % loop.length];
@@ -32,6 +33,8 @@ function profileFor(i: number): Profile {
 async function resetLoop() {
   const batch = db.batch();
   loop.forEach((email, i) => batch.set(db.doc(`data/${email}`), profileFor(i)));
+  // admins are recognised by their roster role, so the admin needs a profile of their own
+  batch.set(db.doc(`data/${ADMIN}`), { role: "admin", firstName: "Check", lastName: "Admin" });
   await batch.commit();
 }
 
@@ -68,7 +71,7 @@ describe("target location visibility", () => {
 
   it("still shows it to admins looking at a player", async () => {
     useSettings({ seeTargetLocation: false });
-    const result = await wrappedGetProfile({ data: { email: A }, auth: authFor(D, true) } as any) as Profile;
+    const result = await wrappedGetProfile({ data: { email: A }, auth: authFor(ADMIN, true) } as any) as Profile;
     expect(result.target.location).toBeDefined();
   });
 

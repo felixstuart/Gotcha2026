@@ -19,7 +19,7 @@ export async function requireRegisteredSchoolUser(request: CallableRequest) {
 
 /**
  * Whose data a call is about: the caller's own, or (admins only) the email in the request.
- * isAdmin comes from the caller's `admin` custom claim (see hasAdminClaim in auth.ts).
+ * isAdmin comes from the caller's roster role (the profile requireRegisteredSchoolUser returns).
  */
 export function requestedEmail(data: unknown, callerEmail: string, isAdmin: boolean): string {
   const email = (data as { email?: unknown } | null)?.email;
