@@ -11,15 +11,11 @@ The iOS/Android app for Gotcha. It's a port of `website/`, so it calls the same 
    `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`
 
 ## Running
-Start these from the repo root:
-- `firebase emulators:start`
-- `npx tsx seed.ts`
-
-Then run this from this folder:
+Local builds use production Firebase by default. Run from this folder:
 - `npx expo run:ios`
   - or `npx expo run:android`
 
-This builds a custom dev client, which is required because Expo Go can't load the native Firebase modules. In dev builds the app uses the Auth emulator (9099) and Functions emulator (5001) at `10.0.2.2` on Android, `localhost` on iOS (see `src/lib/firebase.ts`).
+This builds a custom dev client, which is required because Expo Go can't load the native Firebase modules. To use synthetic data, start Firebase emulators and set `EXPO_PUBLIC_USE_FIREBASE_EMULATORS=true` before starting Expo. With this opt-in, debug builds use the Auth emulator (9099) and Functions emulator (5001) at `10.0.2.2` on Android, `localhost` on iOS (see `src/lib/firebase.ts`).
 
 ## Layout
 | Path | What it is |

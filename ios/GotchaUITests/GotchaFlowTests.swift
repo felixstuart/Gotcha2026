@@ -23,6 +23,8 @@ final class GotchaFlowTests: XCTestCase {
 
     override func setUp() {
         continueAfterFailure = false
+        app.launchEnvironment["GOTCHA_USE_FIREBASE_EMULATORS"] = "1"
+        app.launchEnvironment["GOTCHA_FIREBASE_PROJECT_ID"] = "demo-gotcha-security"
     }
 
     /// Without location: the target's building stays under the sand, with the website's hints.

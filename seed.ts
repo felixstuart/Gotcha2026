@@ -1,18 +1,8 @@
-import * as admin from "firebase-admin";
 import { db } from "./functions/src/firebase";
 import { type Profile, type Leaderboard, type Role } from "./types";
 
-// Initialize Firebase Admin SDK for emulator
-admin.initializeApp({
-  projectId: "felixs-gotcha-tes", // Use your project ID
-});
-
-// Connect to Firestore emulator
-db.settings({
-  host: "localhost:8080", // Default Firestore emulator port
-  ssl: false,
-});
-
+// The shared Admin SDK instance honors FIRESTORE_EMULATOR_HOST and GCLOUD_PROJECT.
+// Never override the host here: the isolated test lane uses port 18080, not 8080.
 export async function seedProfiles() {
   if (!process.env.FIRESTORE_EMULATOR_HOST) {
     throw new Error("Seeding requires FIRESTORE_EMULATOR_HOST; refusing production writes");
@@ -99,7 +89,7 @@ export async function seedProfiles() {
     },
   };
 
-  console.log("🔥 Connected to Firestore Emulator on localhost:8080");
+  console.log(`Connected to Firestore emulator at ${process.env.FIRESTORE_EMULATOR_HOST}`);
   console.log("📝 Seeding profiles...");
 
   const batch = db.batch();

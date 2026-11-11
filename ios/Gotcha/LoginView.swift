@@ -35,7 +35,9 @@ struct LoginView: View {
             }
 
             #if DEBUG
-            emulatorSignIn
+            if ProcessInfo.processInfo.environment["GOTCHA_USE_FIREBASE_EMULATORS"] == "1" {
+                emulatorSignIn
+            }
             #endif
 
             VStack(spacing: 12) {

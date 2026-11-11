@@ -19,24 +19,23 @@ export const updateChaserTargetLocation = async (
     targetLocation: Location,
     building = buildingAt(targetLocation),
 ): Promise<string | null> => {
-    if (!building) {
-        console.log("no building found"); // todo, maybe fix this silent failure
-        return null;
-    }
+    if (!building) return null;
 
-    targetProfile.location = building;
-    if (targetProfile.chaser && targetProfile.chaser !== "none") {
-        try {
-            await db.collection("data").doc(targetProfile.chaser).update({
-              "target.location": building,
-            });
-        } catch (err) {
-            // e.g. the chaser's profile was deleted. sharing a location is best-effort,
-            // so it shouldn't stop the player's own profile from loading
-            console.error("couldn't save the building for the chaser:", err);
+    return db.runTransaction(async (tx) => {
+        const caller = (await tx.get(db.doc(`data/${email}`))).data() as Profile | undefined;
+        if (!caller?.alive || caller.role !== "player" || !caller.chaser || caller.chaser === "none") {
+            return null;
         }
-    }
-    return building;
+        const chaserRef = db.doc(`data/${caller.chaser}`);
+        const chaser = (await tx.get(chaserRef)).data() as Profile | undefined;
+        if (!chaser?.alive || chaser.target?.email !== email) return null;
+        tx.update(chaserRef, { "target.location": building });
+        return building;
+    }).catch((err) => {
+        // Sharing is best-effort: a failed chaser update must not hide the caller's profile.
+        console.error("couldn't save the building for the chaser:", err);
+        return null;
+    });
 };
 
 /**
@@ -74,12 +73,12 @@ export function canSeeTargetLocation(settings: GameSettings, sharedLocation: boo
 
 /**
  * What a player gets back about themselves. Who is chasing them is the one thing the game
- * keeps from them, so `chaser` is blanked (not removed: the apps expect a string there),
+ * keeps from them, so `chaser` is omitted,
  * and which admin last edited them is left out.
  */
-export function forPlayer(profile: Profile): Profile {
-    const { lastEditedBy: _by, lastEditedAt: _at, ...rest } = profile;
-    return { ...rest, chaser: "" };
+export function forPlayer(profile: Profile): ClientProfile {
+    const { chaser: _chaser, lastEditedBy: _by, lastEditedAt: _at, ...rest } = profile;
+    return rest;
 }
 
 /**

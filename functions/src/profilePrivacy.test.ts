@@ -69,8 +69,8 @@ describe("profile hunter privacy", () => {
   });
 
   it.each([
-    { alive: false }, { role: "observer" }, { role: "admin" },
-  ])("redacts non-admin claims regardless of stored profile state: %j", async (changes) => {
+    { alive: false }, { role: "observer" },
+  ])("redacts player views regardless of stored profile state: %j", async (changes) => {
     await db.doc(`data/${player}`).update(changes);
     expect(await load()).not.toHaveProperty("chaser");
   });

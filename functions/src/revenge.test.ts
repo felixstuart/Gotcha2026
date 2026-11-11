@@ -51,7 +51,7 @@ const authFor = (email: string, admin = false) => ({
 });
 const eliminate = (email: string) => runTagOut({ data: {}, auth: authFor(email) } as any);
 const adminEliminate = () => runAdminUpdate({
-  data: { email: T, changes: { alive: false } }, auth: authFor(Q, true),
+  data: { email: T, changes: { alive: false } }, auth: authFor("revenge-admin@milton.edu", true),
 } as any);
 
 async function expectLoop(emails: string[]) {
@@ -72,6 +72,7 @@ beforeAll(() => {
 beforeEach(async () => {
   setCachedSettings({ ...DEFAULT_SETTINGS, revengeEnabled: true });
   const batch = db.batch();
+  batch.set(db.doc("data/revenge-admin@milton.edu"), { role: "admin", alive: false });
   for (const doc of (await db.collection("tagOutEvents").get()).docs) batch.delete(doc.ref);
   batch.set(db.doc("leaderboard/main"), { topTaggers: [], byDorms: [], byClass: [] });
   loop.forEach((email, i) => batch.set(db.doc(`data/${email}`),
@@ -95,8 +96,9 @@ describe("revenge during elimination", () => {
     await expectLoop([Q, V1, V2, F, R]);
     expect((await read(T)).alive).toBe(false);
     expect((await read(Q)).tags).toBe(1);
-    expect(result.rows[V1].alive).toBe(true);
-    expect(result.rows[V2].alive).toBe(true);
+    expect(result.rows).toEqual({}); // changed rows expose hidden chasers; only admins receive them
+    expect((await read(V1)).alive).toBe(true);
+    expect((await read(V2)).alive).toBe(true);
     expect(result.winner).toBeNull();
     for (const id of victimEventIds) {
       expect((await db.doc(`tagOutEvents/${id}`).get()).data()?.active).toBe(false);
@@ -193,7 +195,7 @@ describe("revenge during elimination", () => {
 
   it("closes an event when an admin revives its victim", async () => {
     await runAdminUpdate({
-      data: { email: V1, changes: { alive: true, chaser: Q } }, auth: authFor(Q, true),
+      data: { email: V1, changes: { alive: true, chaser: Q } }, auth: authFor("revenge-admin@milton.edu", true),
     } as any);
     expect((await read(V1)).activeTagOutEvent).toBeUndefined();
     expect((await db.doc(`tagOutEvents/${victimEventIds[0]}`).get()).data()?.active).toBe(false);
@@ -206,7 +208,7 @@ describe("revenge during elimination", () => {
     await eliminate(T);
     const first = (await eventsFor(T))[0];
     await runAdminUpdate({
-      data: { email: T, changes: { alive: true, chaser: Q } }, auth: authFor(Q, true),
+      data: { email: T, changes: { alive: true, chaser: Q } }, auth: authFor("revenge-admin@milton.edu", true),
     } as any);
     // A revenge revival can leave last words behind; the next tag overwrites them.
     await db.doc(`lastWords/${T}`).set({ lw: "Previous round", author: "Test", timestamp: 0 });
@@ -289,7 +291,7 @@ describe("leaderboard player identity", () => {
       }, updatedAt: Date.now() });
     } else await index.delete();
     await runAdminUpdate({
-      data: { email: Q, changes: { firstName: "Taylor", tags: 2 } }, auth: authFor(R, true),
+      data: { email: Q, changes: { firstName: "Taylor", tags: 2 } }, auth: authFor("revenge-admin@milton.edu", true),
     } as any);
     expect((await db.doc("leaderboard/main").get()).data()?.topTaggers).toEqual([
       { email: R, name: "Alex Smith", tags: 8 },
@@ -305,7 +307,7 @@ describe("leaderboard player identity", () => {
     });
     await db.doc("adminIndex/main").delete();
     await runAdminUpdate({
-      data: { email: Q, changes: { firstName: "Taylor", tags: 0 } }, auth: authFor(R, true),
+      data: { email: Q, changes: { firstName: "Taylor", tags: 0 } }, auth: authFor("revenge-admin@milton.edu", true),
     } as any);
     await processScore(event);
     expect((await db.doc("leaderboard/main").get()).data()?.topTaggers)

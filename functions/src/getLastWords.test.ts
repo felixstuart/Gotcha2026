@@ -92,9 +92,10 @@ describe("newest last words", () => {
     expect((await load()).lastWords[0]).toEqual(entry("My final words", 1000));
     expect((await db.doc(lastWordsIndexPath).get()).exists).toBe(true);
 
+    await db.doc("data/lastwords-admin@milton.edu").set({ role: "admin", alive: false });
     await adminUpdate({
       data: { email, changes: { alive: true, chaser: anchor } },
-      auth: { uid: anchor, token: { email: anchor, email_verified: true, admin: true } },
+      auth: { uid: "lastwords-admin", token: { email: "lastwords-admin@milton.edu", email_verified: true, admin: true } },
     } as any);
 
     expect((await db.doc(`lastWords/${email}`).get()).exists).toBe(false);

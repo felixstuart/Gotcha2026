@@ -9,6 +9,7 @@ import { tagOut } from "./tagOut";
 import { getLastWords, lastWordsIndexPath } from "./getLastWords";
 import { setLastWords } from "./setLastWords";
 import { reviveVictims } from "./revenge";
+import { Chain } from "./chain";
 import { runCheckInSweep } from "./checkInSweep";
 import { DEFAULT_SETTINGS, getGameSettings, setCachedSettings, settingsDoc } from "./settings";
 
@@ -94,7 +95,7 @@ describe("what players are told", () => {
   it("doesn't tell a player who is chasing them, or which admin edited them", async () => {
     await db.doc(`data/${address("two")}`).update({ lastEditedBy: ADMIN, lastEditedAt: 1 });
     const own = await call<Profile>(getProfile, address("two"));
-    expect(own.chaser).toBe("");
+    expect(own).not.toHaveProperty("chaser");
     expect(own.lastEditedBy).toBeUndefined();
     expect(own.lastEditedAt).toBeUndefined();
     expect(own.target.email).toBe(address("three")); // they still get their target
@@ -177,6 +178,12 @@ describe("tag out", () => {
 });
 
 describe("revenge", () => {
+  const revive = () => db.runTransaction(async (tx) => {
+    const chain = new Chain(db, tx);
+    const count = await reviveVictims(db, tx, chain, address("x"));
+    chain.save();
+    return count;
+  });
   // r -> q -> x -> f -> r was the loop. x had tagged out p1 then p2.
   // then x was tagged out by q (so q -> f), and q was tagged out by r (so r -> f)
   // before x's revenge got to run
@@ -190,11 +197,18 @@ describe("revenge", () => {
     batch.set(db.doc(`data/${address("p2")}`), player("p2", "x", "x", false));
     batch.set(db.doc(`lastWords/${address("p1")}`), { lw: "first out", author: "p1 Test", timestamp: 1000 });
     batch.set(db.doc(`lastWords/${address("p2")}`), { lw: "", author: "p2 Test", timestamp: 2000 });
+    for (const [i, name] of ["p1", "p2"].entries()) {
+      const id = `audit-${name}`;
+      batch.update(db.doc(`data/${address(name)}`), { activeTagOutEvent: id });
+      batch.set(db.doc(`tagOutEvents/${id}`), {
+        tagger: address("x"), victim: address(name), timestamp: i + 1, active: true,
+      });
+    }
     await batch.commit();
   });
 
   it("keeps the loop closed when the tagger's chaser has gone out too", async () => {
-    expect(await reviveVictims(address("x"))).toEqual([address("p1"), address("p2")]);
+    expect(await revive()).toBe(2);
 
     // they go in after r, the closest player up the line who is still in, earliest tagged first
     expect(await walkLoop("r")).toEqual(["r", "p1", "p2", "f"]);
@@ -203,13 +217,13 @@ describe("revenge", () => {
   });
 
   it("clears their old last words, so their next tag out counts on the leaderboard", async () => {
-    // updateLeaderboard only runs when a last words entry is created, not overwritten
+    // Display cleanup is preserved; score events are independent of last words.
     expect((await db.doc(`lastWords/${address("p1")}`).get()).exists).toBe(false);
     expect((await db.doc(`lastWords/${address("p2")}`).get()).exists).toBe(false);
   });
 
   it("does nothing the second time", async () => {
-    expect(await reviveVictims(address("x"))).toEqual([]);
+    expect(await revive()).toBe(0);
     expect(await walkLoop("r")).toEqual(["r", "p1", "p2", "f"]);
   });
 });

@@ -28,6 +28,7 @@ export interface Profile {
 }
 
 // getProfile omits the hunter for non-admins; admins may receive the stored value.
+// Editor metadata is also omitted for players; database profiles remain unchanged.
 // Keep the database Profile strict: chain operations always require a chaser.
 export interface ClientProfile extends Omit<Profile, "chaser"> {
   chaser?: string;

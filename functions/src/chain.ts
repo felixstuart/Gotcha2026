@@ -1,6 +1,7 @@
 import { HttpsError } from "firebase-functions/v2/https";
 import { Firestore, Transaction } from "firebase-admin/firestore";
 import { Profile } from "../../types";
+import { lastWordsIndexPath } from "./getLastWords";
 
 // what a player with nobody to chase (an observer, or the winner) has as their target
 const NO_TARGET: Profile["target"] = { firstName: "None", lastName: "", email: "" };
@@ -19,6 +20,7 @@ export class Chain {
   private profiles = new Map<string, Profile>();
   private touched = new Set<string>();
   private closedTagOutEvents = new Set<string>();
+  private clearedLastWords = new Set<string>();
 
   constructor(private db: Firestore, private tx: Transaction) {}
 
@@ -51,9 +53,16 @@ export class Chain {
     for (const [email, profile] of this.changed()) {
       this.tx.set(this.db.doc(`data/${email}`), profile);
     }
+    for (const email of this.clearedLastWords) this.tx.delete(this.db.doc(`lastWords/${email}`));
+    if (this.clearedLastWords.size) this.tx.delete(this.db.doc(lastWordsIndexPath));
     for (const id of this.closedTagOutEvents) {
       this.tx.update(this.db.doc(`tagOutEvents/${id}`), { active: false });
     }
+  }
+
+  /** Queue display cleanup until all chain reads have finished. */
+  clearLastWords(email: string) {
+    this.clearedLastWords.add(email);
   }
 
   /** Queue event closure until save, so later chain operations can still read. */

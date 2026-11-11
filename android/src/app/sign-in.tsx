@@ -13,7 +13,7 @@ import { useState } from "react";
 import { Image, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { isErrorWithCode, statusCodes } from "@react-native-google-signin/google-signin";
-import { signInToEmulator, signInWithGoogle } from "@/lib/firebase";
+import { signInToEmulator, signInWithGoogle, useEmulators } from "@/lib/firebase";
 import { useAuth } from "@/lib/useAuth";
 import { copy } from "@/lib/copy";
 import { colors, fontSize, radius, spacing } from "@/lib/theme";
@@ -54,7 +54,7 @@ export default function SignIn() {
 
       <View style={styles.footer}>
         {message ? <Text style={styles.error}>{message}</Text> : null}
-        {__DEV__ ? <EmulatorSignIn onError={setError} /> : null}
+        {useEmulators ? <EmulatorSignIn onError={setError} /> : null}
         <Pressable
           onPress={handleSignIn}
           disabled={busy}

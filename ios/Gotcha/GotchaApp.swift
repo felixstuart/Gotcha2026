@@ -16,15 +16,30 @@ struct GotchaApp: App {
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
+        #if DEBUG
+        // UI tests may select a demo project, but only with backend emulators enabled.
+        if ProcessInfo.processInfo.environment["GOTCHA_USE_FIREBASE_EMULATORS"] == "1",
+           let project = ProcessInfo.processInfo.environment["GOTCHA_FIREBASE_PROJECT_ID"],
+           let path = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist"),
+           let options = FirebaseOptions(contentsOfFile: path) {
+            options.projectID = project
+            FirebaseApp.configure(options: options)
+        } else {
+            FirebaseApp.configure()
+        }
+        #else
         FirebaseApp.configure()
+        #endif
 
         #if DEBUG
         // The local Firebase emulators (see firebase.json). The app only uses Auth and Functions;
         // Firestore is locked to clients. On a real phone, set GOTCHA_EMULATOR_HOST to the
         // Mac's LAN address in the scheme's environment variables.
-        let host = ProcessInfo.processInfo.environment["GOTCHA_EMULATOR_HOST"] ?? "127.0.0.1"
-        Auth.auth().useEmulator(withHost: host, port: 9099)
-        Functions.functions(region: Callables.region).useEmulator(withHost: host, port: 5001)
+        if ProcessInfo.processInfo.environment["GOTCHA_USE_FIREBASE_EMULATORS"] == "1" {
+            let host = ProcessInfo.processInfo.environment["GOTCHA_EMULATOR_HOST"] ?? "127.0.0.1"
+            Auth.auth().useEmulator(withHost: host, port: 9099)
+            Functions.functions(region: Callables.region).useEmulator(withHost: host, port: 5001)
+        }
         #endif
 
         // created after Firebase is configured

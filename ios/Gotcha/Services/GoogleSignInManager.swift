@@ -69,7 +69,8 @@ final class GoogleSignInManager: ObservableObject {
     /// Signs in to the Auth emulator as any roster email, like the emulator's Google popup on
     /// the website. The emulator accepts an unsigned Google ID token, so no real account is used.
     func signInToEmulator(email: String) {
-        guard !isSigningIn else { return }
+        guard !isSigningIn,
+              ProcessInfo.processInfo.environment["GOTCHA_USE_FIREBASE_EMULATORS"] == "1" else { return }
         let email = email.trimmingCharacters(in: .whitespaces).lowercased()
         let claims: [String: Any] = [
             "sub": "emulator-\(email)",

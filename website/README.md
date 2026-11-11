@@ -32,7 +32,11 @@ Start the development server with HMR:
 npm run dev
 ```
 
-Your application will be available at `http://localhost:5173`.
+Your application will be available at `http://localhost:5173`. Local development uses
+production Firebase Auth and Functions by default. To test synthetic game data locally,
+start the Firebase emulators and use
+`VITE_USE_FIREBASE_EMULATORS=true VITE_FIREBASE_PROJECT_ID=demo-gotcha-security npm run dev`.
+Production builds always use the configured production project.
 
 ## Building for Production
 

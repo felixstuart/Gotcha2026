@@ -20,7 +20,7 @@ export interface FirestoreSchema {
    * both are alive and the chaser still targets the caller, then writes only location.
    * Missing/inactive players or mismatched links are skipped (at most two reads/one write).
    * getProfile returns ClientProfile: non-admin responses omit chaser on every path;
-   * admin custom-claim callers retain it. Stored Profile and chain links are unchanged.
+   * callers with the current admin roster role retain it. Stored Profile and chain links are unchanged.
    * Mobile response models accept a missing hunter; old profile caches are scrubbed.
    * iOS GameCache and Android cache strip hunter identity on cache read/write;
    * disk caches also omit target.location so a revealed building is not persisted.
@@ -43,17 +43,17 @@ export interface FirestoreSchema {
 
   /**
    * Latest display entry, overwritten on repeat elimination; not an event history.
-   * Written by tagOut/setLastWords; admin revival deletes it, revenge retains it.
+   * Written by tagOut/setLastWords; admin revival and revenge delete it.
    * Changes to displayed entries must invalidate lastWordsIndex/main.
    */
   "lastWords/{email}": LastWordsEntry;
 
   /**
-   * Response cache built by getLastWords on a miss; no TTL. Version 2 selects
-   * nonempty lw entries by timestamp DESC, then lw ASC for ties, limited to ten.
-   * Uses the timestamp DESC/lw ASC composite index in firestore.indexes.json.
+   * Response cache built by getLastWords on a miss; no TTL. Version 2 reads the
+   * newest 50 entries by timestamp DESC, filters blank lw, then takes ten.
+   * Older published entries can be omitted when the recent window is mostly blank.
    * Missing/older versions are rebuilt so old alphabetical results cannot persist.
-   * tagOut, nonempty setLastWords, and admin revival delete it in their write transactions.
+   * tagOut, nonempty setLastWords, admin revival, and revenge delete it in their write transactions.
    * Delete this document to rebuild on the next read.
    */
   "lastWordsIndex/main": { version: number; lastWords: LastWordsEntry[] };

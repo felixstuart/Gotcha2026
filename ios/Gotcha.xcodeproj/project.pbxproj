@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A1C0D2026110000000000001 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = A1C0D2026110000000000002 /* GoogleService-Info.plist */; };
 		8D496F723084460B0063B2F8 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 8D496F713084460B0063B2F8 /* FirebaseAuth */; };
 		8D496F743084460B0063B2F8 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 8D496F733084460B0063B2F8 /* FirebaseFirestore */; };
 		8D496F763084460B0063B2F8 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = 8D496F753084460B0063B2F8 /* FirebaseFunctions */; };
@@ -32,6 +33,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		A1C0D2026110000000000002 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Gotcha/GoogleService-Info.plist"; sourceTree = "<group>"; };
 		F2EC1B9B2F07171F006F54C9 /* Gotcha.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Gotcha.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F2EC1BAA2F071721006F54C9 /* GotchaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GotchaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F2EC1BB42F071721006F54C9 /* GotchaUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GotchaUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -42,6 +44,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
+				"GoogleService-Info.plist",
 			);
 			target = F2EC1B9A2F07171F006F54C9 /* Gotcha */;
 		};
@@ -104,6 +107,7 @@
 			isa = PBXGroup;
 			children = (
 				F2EC1B9D2F07171F006F54C9 /* Gotcha */,
+				A1C0D2026110000000000002 /* GoogleService-Info.plist */,
 				8D4A9000307FE74F0080AB2C /* GotchaUITests */,
 				8D4A8815307FE74F0080AB2C /* Frameworks */,
 				F2EC1B9C2F07171F006F54C9 /* Products */,
@@ -246,6 +250,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1C0D2026110000000000001 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -449,6 +454,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
+				CODE_SIGN_ENTITLEMENTS = Gotcha/Gotcha.entitlements;
 				PRODUCT_BUNDLE_IDENTIFIER = com.miltonacademy.Gotcha;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -484,6 +490,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
+				CODE_SIGN_ENTITLEMENTS = Gotcha/Gotcha.entitlements;
 				PRODUCT_BUNDLE_IDENTIFIER = com.miltonacademy.Gotcha;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
