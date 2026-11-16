@@ -150,14 +150,17 @@ export class Chain {
     }
 
     const anchor = await this.load(anchorEmail);
-    if (!anchor.alive) {
-      throw new HttpsError("failed-precondition", `${anchorEmail} is out, so they can't chase anyone`);
+    if (!anchor.alive || anchor.role !== "player") {
+      throw new HttpsError("failed-precondition", `${anchorEmail} must be an alive player to chase anyone`);
     }
 
     // the winner (or a lone player) has no target, so the new player just pairs up with them
     const nextEmail = anchor.target.email || anchorEmail;
 
     const player = await this.load(email);
+    if (player.role !== "player") {
+      throw new HttpsError("failed-precondition", "Only players can join the game loop");
+    }
     if (player.activeTagOutEvent) {
       this.closeTagOutEvent(player.activeTagOutEvent);
       delete player.activeTagOutEvent;
@@ -188,7 +191,7 @@ export class Chain {
       } catch {
         return null; // their tagger's profile was deleted
       }
-      if (player.alive) return current;
+      if (player.alive && player.role === "player") return current;
       current = player.chaser;
     }
     return null;

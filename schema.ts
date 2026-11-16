@@ -13,6 +13,8 @@ import type {
 export interface FirestoreSchema {
   /**
    * Current game state. Alive players' target.email/chaser links form a loop.
+   * Chain insertion requires both the entrant and anchor to have the player role;
+   * admins/observers cannot be revived into the loop without an explicit role change.
    * Chain saves affected profiles together in a transaction (all reads before writes).
    * target duplicates identity/location: relinking and renames must update that copy.
    * getProfile writes buildings to the chaser's target.location, not profile.location.
@@ -26,6 +28,18 @@ export interface FirestoreSchema {
    * disk caches also omit target.location so a revealed building is not persisted.
    * WireLeaderboard accepts missing email IDs in old mobile cache entries; newly
    * written leaderboard/main entries still require email. Keep cache decoding compatible.
+   * load-people.mjs initializes 2–2000 profiles and leaderboard in one transaction, refusing
+   * existing non-admin profiles, leaderboard, or lastWords. Existing admins in the
+   * CSV retain their role. All existing admins are excluded from the new loop and
+   * leaderboard; alive becomes false, chaser none, target empty, and the active event
+   * pointer is removed. At least two non-admin players are required before writes.
+   * Roles are read in the same transaction; Auth claims are left to getProfile sync. CSV names are authoritative; blank
+   * class/dorm values become unknown; all nine Milton boarding houses are accepted. The initial roster is the source for these fields
+   * until admin edits; syncAdminIndex derives its rows from the created profiles.
+   * reset-players.mjs reads profiles and game records before deleting non-admin
+   * profiles, leaderboard, lastWords, tagOutEvents and lastWordsIndex in one tx;
+   * adminIndex rows are pruned. Admin profiles, config/game and adminLog remain.
+   * Run with gameplay paused; current-state profile triggers preserve reimported rows. Reset is preview-only unless --apply; recovery needs a backup.
    * The winner has chaser "none" and an empty target.email.
    */
   "data/{email}": Profile;
@@ -37,7 +51,8 @@ export interface FirestoreSchema {
    * score is omitted for admin removals and imported history; check-in creates no event.
    * Revenge queries tagger==email, active==true, timestamp ASC using the composite
    * index in firestore.indexes.json, then checks each victim's current event pointer.
-   * No time cutoff, local sort, or traversal of unrelated players.
+   * No time cutoff, local sort, or traversal of unrelated players. Revenge skips
+   * victims whose role changed away from player, closing their old event.
    */
   "tagOutEvents/{eventId}": TagOutEvent;
 
@@ -82,8 +97,11 @@ export interface FirestoreSchema {
   /**
    * Materialized profile rows without location or event pointers; used by the admin
    * table and check-in sweep. tagOut/admin edits/sweep write affected rows atomically.
-   * syncAdminIndex also merges profile changes/deletions and skips location-only writes.
-   * rebuildAdminIndex replaces the whole view from data if missing or stale.
+   * Imports write this complete projection atomically with profiles and leaderboard.
+   * syncAdminIndex reconciles current profiles in a transaction (never event snapshots),
+   * skips matching rows and retries failures. Late reset events cannot remove reseeded rows.
+   * players is exempt from indexing in firestore.indexes.json to support large rosters.
+   * rebuildAdminIndex reads data and replaces the whole view in one transaction.
    * The sweep rechecks candidate profiles before removing anyone.
    */
   "adminIndex/main": AdminIndex;

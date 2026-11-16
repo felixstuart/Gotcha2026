@@ -16,8 +16,8 @@ export default function Layout() {
           </h1>
         </div>
         <div className="flex ml-auto mr-4 space-x-8 *:font-bold text-center text-xl items-center *:hover:text-slate-300">
-          <NavLink className="flex items-center" to={"/app/profile"}>Profile</NavLink>
-          <NavLink className="flex items-center" to={"/app/leaderboard"}>Leaderboard</NavLink>
+          <NavLink className="flex items-center decoration-2 underline-offset-8 aria-[current=page]:underline" to={"/app/profile"}>Profile</NavLink>
+          <NavLink className="flex items-center decoration-2 underline-offset-8 aria-[current=page]:underline" to={"/app/leaderboard"}>Leaderboard</NavLink>
         </div>
       </header>
       <div>

@@ -3,8 +3,10 @@
     "gen:clients": "node scripts/generate-clients.mjs",
     "check:clients": "node scripts/generate-clients.mjs --check",
     "load:people": "node load-people.mjs",
-    "test:import": "node --test load-people.test.mjs",
-    "gen:buildings": "node scripts/generate-buildings.mjs"
+    "test:import": "node --test load-people.test.mjs reset-players.test.mjs",
+    "gen:buildings": "node scripts/generate-buildings.mjs",
+    "reset:players": "node reset-players.mjs",
+    "test:import:e2e": "npm --prefix functions run build && firebase emulators:exec --config firebase.import.json --project demo-gotcha-import --only firestore \"node --test scripts/import.e2e.test.mjs\""
   },
   "dependencies": {
     "firebase-admin": "^13.6.0",

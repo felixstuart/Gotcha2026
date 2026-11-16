@@ -34,8 +34,8 @@ export default function Layout() {
           </h1>
         </div>
         <div className="flex ml-auto mr-4 space-x-8 *:font-bold text-center text-xl items-center *:hover:text-slate-300">
-          <NavLink className="flex items-center" to={"app/admin/users"}>Manage Players</NavLink>
-          <NavLink className="flex items-center" to={"app/admin/gameplay"}>Manage Gameplay</NavLink>
+          <NavLink className="flex items-center decoration-2 underline-offset-8 aria-[current=page]:underline" to="/app/admin/users">Manage Players</NavLink>
+          <NavLink className="flex items-center decoration-2 underline-offset-8 aria-[current=page]:underline" to="/app/admin/gameplay">Manage Gameplay</NavLink>
         </div>
       </header>
       {adminProfile && (

@@ -193,6 +193,17 @@ describe("revenge during elimination", () => {
     expect((await db.doc("tagOutEvents/test-obsolete").get()).data()?.active).toBe(false);
   });
 
+  it.each(["admin", "observer"])("skips a victim changed to %s without blocking their tagger's elimination", async (role) => {
+    await runAdminUpdate({
+      data: { email: V1, changes: { role } }, auth: authFor("revenge-admin@milton.edu", true),
+    } as any);
+    await eliminate(T);
+    await expectLoop([Q, V2, F, R]);
+    expect((await read(V1)).alive).toBe(false);
+    expect((await read(V1)).role).toBe(role);
+    expect((await db.doc(`tagOutEvents/${victimEventIds[0]}`).get()).data()?.active).toBe(false);
+  });
+
   it("closes an event when an admin revives its victim", async () => {
     await runAdminUpdate({
       data: { email: V1, changes: { alive: true, chaser: Q } }, auth: authFor("revenge-admin@milton.edu", true),

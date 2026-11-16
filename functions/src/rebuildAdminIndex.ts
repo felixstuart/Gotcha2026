@@ -13,25 +13,13 @@ export const rebuildAdminIndex = onCall(async (request) => {
   const adminEmail = await requireAdmin(request);
 
   const db = getFirestore();
-  const profiles = await db.collection("data").get();
-
-  const index: AdminIndex = {
-    players: {},
-    updatedAt: Date.now(),
-  };
-  for (const doc of profiles.docs) {
-    index.players[doc.id] = toAdminIndexRow(doc.data() as Profile);
-  }
-
-  await db.runTransaction(async (tx) => {
-    // no merge: this replaces the whole index, which also drops deleted players
+  return db.runTransaction(async (tx) => {
+    // Reading inside the transaction prevents a stale rebuild overwriting newer rows.
+    const profiles = await tx.get(db.collection("data"));
+    const index: AdminIndex = { players: {}, updatedAt: Date.now() };
+    for (const doc of profiles.docs) index.players[doc.id] = toAdminIndexRow(doc.data() as Profile);
     tx.set(db.doc(ADMIN_INDEX_PATH), index);
-    logAdminAction(db, tx, {
-      by: adminEmail,
-      action: "rebuildIndex",
-      target: null,
-    });
+    logAdminAction(db, tx, { by: adminEmail, action: "rebuildIndex", target: null });
+    return { players: profiles.size };
   });
-
-  return { players: profiles.size };
 });

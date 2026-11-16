@@ -96,3 +96,6 @@ website/build/
 # Buildings compiled from geofence/buildings.geojson (scripts/generate-buildings.mjs)
 /functions/src/generated/
 /website/app/generated/
+
+# Private CSV roster
+/roster.csv

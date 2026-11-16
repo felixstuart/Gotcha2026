@@ -68,7 +68,7 @@ FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 npm run load:people -- --project felixs-g
 
 This shuffles the players into **one closed target/chaser loop**, creates alive
 player profiles with zero tags, and initializes `leaderboard/main`. The import
-is atomic and supports 2–499 unique players. It refuses to change an existing
+is atomic and supports 2–2000 unique players. It refuses to change an existing
 game (profiles, leaderboard, or last words); use a fresh emulator instance for
 another simulation. Use this instead of `seed.ts` for an email-based roster.
 
@@ -78,6 +78,47 @@ default. Dorms and unrecognized classes are `unknown` and should be filled in
 before the real game. Every imported member has the `player` role. Add
 `--keep-order` for a repeatable loop in file order, or `--file "initial emails.txt"`
 for another file name. Run `npm run load:people -- --help` for all options.
+
+### Import a CSV roster
+
+Save `roster.csv` in the repository root (ignored by Git), with headers:
+
+```csv
+Last,First,Class,DayDorm,Email
+Chen,Alex,Class I,Day Student,alex_chen27@milton.edu
+Lee,Jordan,Class IV,Goodwin House,jordan_lee30@milton.edu
+```
+
+Header order does not matter. Quoted fields, commas, CRLF and UTF-8 BOM are supported.
+Names come directly from the CSV. Class I/II/III/IV map to senior/junior/sophomore/freshman;
+Day Student maps to `day`, and house names become lowercase without `House`.
+Supported houses: Academy, Forbes, Goodwin, Hallowell, Hathaway, Millet, Norris, Robbins,
+and Wolcott, with or without the `House` suffix (case insensitive).
+Blank class/dorm values become `unknown`; other unrecognized values are rejected.
+Identical duplicate emails are combined; conflicting duplicate rows are rejected.
+
+Preview without accessing Firebase:
+
+```sh
+npm run load:people -- --file roster.csv --dry-run
+```
+
+After `gcloud auth application-default login` with an account that can write the
+intended project, import into the configured live project:
+
+```sh
+env -u FIRESTORE_EMULATOR_HOST npm run load:people -- --file roster.csv --production --project felixs-gotcha-tes
+```
+
+The import creates 2–2000 players, one randomized closed loop, and a zero-score
+leaderboard atomically. New members start as players. Existing Firestore admins
+retain their admin role and identity. All existing admins are excluded from the loop
+and leaderboard, marked inactive, and have old targets/chasers cleared, including
+admins outside the CSV. At least two non-admin players must remain. Offline previews
+cannot resolve live admin roles; exclusion happens inside the import transaction. No email is automatically granted admin access. Only admin
+profiles may preexist: any non-admin profile, leaderboard, or last words causes
+the import to refuse without changing data. It creates no Auth accounts or claims. A preview uses a separate
+shuffle from the actual import; add `--keep-order` to both for file-order assignments.
 
 For a real initial import, with Application Default Credentials configured for
 the intended project and `FIRESTORE_EMULATOR_HOST` unset:
@@ -92,6 +133,32 @@ mode, Auth and Functions both connect to local emulators; use the Auth emulator'
 Google sign-in screen to simulate a roster member. Run `npm run test:import` to
 check roster validation and loop integrity.
 
+## Clear players while preserving admins
+
+Pause gameplay before resetting and reimporting. Preview the reset:
+
+```sh
+env -u FIRESTORE_EMULATOR_HOST npm run reset:players -- --production --project felixs-gotcha-tes
+```
+
+Apply the reset (deletes cannot be undone without a backup):
+
+```sh
+env -u FIRESTORE_EMULATOR_HOST npm run reset:players -- --production --project felixs-gotcha-tes --apply
+```
+
+This removes all non-admin profiles (including observers or missing roles),
+`leaderboard/main`, last words, elimination events and the last-words cache.
+It prunes non-admin rows from `adminIndex/main`. Admin profiles, Firebase Auth
+accounts/claims, game settings and admin audit logs remain unchanged.
+All reads happen before deletes, in one transaction; concurrent role changes
+cause a retry so a newly promoted admin is preserved. Default mode previews only.
+Then run the CSV import command. The importer writes the complete admin index in
+the same transaction; the sync trigger reads current profiles so delayed reset
+events cannot erase fresh rows. Deploy the updated syncAdminIndex function and
+Firestore index configuration before relying on this guarantee in production.
+For an existing stale index, use the admin panel’s Re-index action after deployment.
+
 ## Security checks
 
 From `functions/`, run `npm run test:security:unit` for fast checks or
@@ -101,3 +168,18 @@ only the `demo-gotcha-security` project and separate ports from local developmen
 (`firebase.security.json`). It requires Java and the Firebase CLI; the CLI may
 download the Firestore emulator on first use. It starts and stops its own
 emulators and refuses to seed unless the Auth and Firestore hosts are local.
+
+## Roster end-to-end regression tests
+
+```sh
+npm run test:import:e2e
+```
+
+Uses a generated 2,000-entry CSV and a dedicated local Firestore emulator at
+127.0.0.1:18081 with project `demo-gotcha-import`. No production credentials or
+production data are used. Runs actual import/reset CLI commands, checks every
+saved profile and the entire reciprocal player loop, and calls the actual admin
+index handler. Replays real sync-handler logic with deliberately delayed delete
+and creation events before checking the admin response again. Event delivery is
+controlled by the test, not the Functions emulator. Also checks invalid input,
+preview-only behavior, duplicate import refusal, admin preservation, and reset/reseed.

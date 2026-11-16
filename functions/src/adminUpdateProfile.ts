@@ -171,12 +171,13 @@ async function randomAlivePlayer(
 ): Promise<string | null> {
   const index = (await db.doc(ADMIN_INDEX_PATH).get()).data() as AdminIndex | undefined;
   const candidates = Object.entries(index?.players ?? {})
-    .filter(([candidate, row]) => row.alive && candidate !== email)
+    .filter(([candidate, row]) => row.alive && row.role === "player" && candidate !== email)
     .map(([candidate]) => candidate)
     .sort(() => Math.random() - 0.5);
 
   for (const candidate of candidates.slice(0, 5)) {
-    if ((await chain.load(candidate)).alive) return candidate;
+    const player = await chain.load(candidate);
+    if (player.alive && player.role === "player") return candidate;
   }
   return null;
 }
@@ -188,7 +189,7 @@ async function randomAlivePlayer(
  * - `alive: false` takes them out without awarding a tag, and revives their victims if revenge is on
  * - `alive: true` revives them, after `chaser` / before `targetEmail` if given. Otherwise they go
  *   back in the closest spot (see Chain.closestAliveChaser), or after a random alive player if
- *   they've never played. This is also how observers join the game
+ *   they've never played. Observers must also be changed to role player to join
  * - `chaser` moves this player so that player chases them
  * - `targetEmail` moves that player so this player chases them
  *
@@ -240,7 +241,8 @@ export const adminUpdateProfile = onCall(async (request) => {
     // only players can be tagged out or miss check-in, so anyone else left in the loop would
     // leave their chaser with a target who can never go out
     const staysAlive = alive !== undefined ? alive : before.alive;
-    if (diff.role !== undefined && changes.role !== "player" && staysAlive) {
+    if ((changes.role ?? before.role) !== "player" && staysAlive &&
+        (diff.role !== undefined || changesAlive || changesChaser || changesTarget)) {
       throw new HttpsError(
         "failed-precondition",
         "Only players can be in the game. Take them out first (set alive to false), then change their role",

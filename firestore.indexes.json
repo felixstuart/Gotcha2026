@@ -18,5 +18,11 @@
       ]
     }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    {
+      "collectionGroup": "adminIndex",
+      "fieldPath": "players",
+      "indexes": []
+    }
+  ]
 }

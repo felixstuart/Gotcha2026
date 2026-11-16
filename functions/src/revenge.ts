@@ -24,7 +24,8 @@ export async function reviveVictims(
   for (const doc of events.docs) {
     const event = doc.data() as TagOutEvent;
     const victim = await chain.load(event.victim);
-    if (!victim.alive && victim.activeTagOutEvent === doc.id) victims.push(event.victim);
+    if (victim.role === "player" && !victim.alive && victim.activeTagOutEvent === doc.id) victims.push(event.victim);
+    // Non-player roles are not eligible to rejoin, even if their old elimination remains active.
     // Stale events must not revive a player's different, later elimination.
     chain.closeTagOutEvent(doc.id);
   }

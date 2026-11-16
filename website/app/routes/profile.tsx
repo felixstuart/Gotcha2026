@@ -197,6 +197,11 @@ export default function Profile({ loaderData }: Route.ComponentProps) {
       <>
         <div className="p-4">
           {/* set of cards */}
+          {!alive && profile.role === "player" && (
+            <p className="mb-4 text-center text-4xl font-bold text-red-500">
+              TAGGED OUT
+            </p>
+          )}
           <h1 className="font-bold text-xl">Profile</h1>
           {/* name and profile image card */}
           <div

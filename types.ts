@@ -2,9 +2,13 @@
 
 export interface Profile {
   alive: boolean;
+  // Player reset deletes non-admin profiles and leaves admin profiles unchanged.
+  // Roster import (up to 2000 members) preserves admin access but clears admin game links; only players enter the loop.
   role: Role;
   chaser: string;
+  // Initial CSV import normalizes Class I-IV; blank values become unknown.
   class: string;
+  // Initial CSV import normalizes Day Student to day and all nine Milton House names to lowercase.
   dayorboard: string;
   firstName: string;
   lastName: string;
@@ -82,7 +86,7 @@ export interface Leaderboard {
 }
 
 // One player's row in the admin table. Only what the table needs (no location).
-// Kept up to date by the syncAdminIndex trigger, so never write it by hand.
+// Shared projection: imported atomically, rebuilt transactionally, and reconciled by syncAdminIndex.
 export interface AdminIndexRow {
   firstName: string;
   lastName: string;
@@ -98,7 +102,7 @@ export interface AdminIndexRow {
   checkedInAt: number | null; // the daily check-in sweep reads this, so it never reads profiles to find who missed
 }
 
-// The adminIndex/main document
+// The adminIndex/main document; players is not field-indexed (large map).
 export interface AdminIndex {
   players: Record<string, AdminIndexRow>; // keyed by email
   updatedAt: number;
@@ -108,7 +112,8 @@ export interface AdminIndex {
 export type EditableProfileFields = Pick<Profile,
   "firstName" | "lastName" | "class" | "dayorboard" | "role" | "tags">;
 
-// What adminUpdateProfile accepts. alive, chaser and targetEmail are linked between players,
+// What adminUpdateProfile accepts. Reviving/relocating into the loop requires role player.
+// alive, chaser and targetEmail are linked between players,
 // so changing them also updates the players around them (see functions/src/chain.ts).
 // The names match AdminIndexRow, so a table cell edit can be sent as { [field]: newValue }
 export type AdminProfileChanges = Partial<EditableProfileFields> & {

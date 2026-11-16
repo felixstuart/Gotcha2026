@@ -57,6 +57,7 @@ export async function clientLoader({ request }: Route.ClientLoaderArgs) {
 function toGridRow(email: string, player: AdminIndexRow) {
   return {
     email,
+    role: player.role,
     firstName: player.firstName,
     lastName: player.lastName,
     targetEmail: player.targetEmail,
@@ -93,6 +94,7 @@ export default function UserPanel({ loaderData }: Route.ComponentProps) {
       headerName: "Chaser",
       valueFormatter: (params: { value: string }) => params.value || "none",
     },
+    { field: "role", headerName: "Role", editable: false },
     { field: "tags", headerName: "Tags" },
     // set by the player's phone, so admins can't edit it
     {
@@ -210,7 +212,8 @@ export default function UserPanel({ loaderData }: Route.ComponentProps) {
   return (
     <div className="p-4 bg-slate-900 w-screen h-screen">
       <div className="p-4">
-        <div className="flex justify-end pb-4">
+        <div className="flex justify-between items-center pb-4">
+          <span className="text-sm text-slate-300">{rowData.length} roster entries</span>
           <button
             className="px-3 py-1 rounded bg-slate-700 text-white text-sm hover:bg-slate-600 disabled:opacity-50"
             onClick={onReindex}
@@ -252,6 +255,7 @@ export default function UserPanel({ loaderData }: Route.ComponentProps) {
 }
 
 function ActionsCell(params: CustomCellRendererProps) {
+  if (params.data.role !== "player") return <span className="text-slate-400">Not playing</span>;
   return (
     <div className="flex gap-2 items-center h-full">
       {params.data.alive ? (
