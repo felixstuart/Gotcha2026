@@ -42,12 +42,17 @@ describe("newest last words", () => {
     await db.doc("lastWords/missing-text").set({ author: "Test", timestamp: 2000 });
     const expected = [...entries].reverse().slice(0, 10);
     expect(await load()).toEqual({ lastWords: expected });
-    expect((await db.doc(lastWordsIndexPath).get()).data()).toEqual({ lastWords: expected, version: 2 });
+    expect((await db.doc(lastWordsIndexPath).get()).data()).toEqual({ lastWords: expected, version: 3 });
   });
 
   it("returns all available submitted entries when there are fewer than ten", async () => {
     await seed([entry("A older", 1), entry("Z newest", 2), entry("", 3)]);
     expect(await load()).toEqual({ lastWords: [entry("Z newest", 2), entry("A older", 1)] });
+  });
+
+  it("finds submitted words behind more than fifty newer blank tag-outs", async () => {
+    await seed([entry("Still visible", 1), ...Array.from({ length: 60 }, (_, i) => entry(i % 2 ? "" : "  ", i + 2))]);
+    expect(await load()).toEqual({ lastWords: [entry("Still visible", 1)] });
   });
 
   it("returns an empty list when nobody has submitted words", async () => {
@@ -57,9 +62,16 @@ describe("newest last words", () => {
 
   it("rebuilds the old alphabetical cache without a manual database change", async () => {
     await seed([entry("Z newest", 2)]);
-    await db.doc(lastWordsIndexPath).set({ lastWords: [entry("A stale cached result", 1)] });
+    await db.doc(lastWordsIndexPath).set({ lastWords: [entry("A stale cached result", 1)], version: 2 });
     expect(await load()).toEqual({ lastWords: [entry("Z newest", 2)] });
-    expect((await db.doc(lastWordsIndexPath).get()).data()?.version).toBe(2);
+    expect((await db.doc(lastWordsIndexPath).get()).data()?.version).toBe(3);
+  });
+
+  it("rejects unauthenticated submissions without changing stored words", async () => {
+    await db.doc(`lastWords/${email}`).set(entry("", 1000));
+    await expect(setWords({ data: { lastWords: "No access" } } as any))
+      .rejects.toMatchObject({ code: "permission-denied" });
+    expect((await db.doc(`lastWords/${email}`).get()).data()?.lw).toBe("");
   });
 
   it("refreshes cached results when a player submits last words", async () => {

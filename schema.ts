@@ -64,9 +64,9 @@ export interface FirestoreSchema {
   "lastWords/{email}": LastWordsEntry;
 
   /**
-   * Response cache built by getLastWords on a miss; no TTL. Version 2 reads the
-   * newest 50 entries by timestamp DESC, filters blank lw, then takes ten.
-   * Older published entries can be omitted when the recent window is mostly blank.
+   * Response cache built by getLastWords on a miss; no TTL. Version 3 reads all
+   * entries by timestamp DESC, filters blank lw, then takes ten. This includes
+   * submitted entries even when more than 50 newer tag-outs are still blank.
    * Missing/older versions are rebuilt so old alphabetical results cannot persist.
    * tagOut, nonempty setLastWords, admin revival, and revenge delete it in their write transactions.
    * Delete this document to rebuild on the next read.

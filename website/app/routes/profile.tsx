@@ -2,7 +2,7 @@
 import { app, auth, functions, refreshAdminClaim } from "../../firebase";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { getFunctions, httpsCallable } from "firebase/functions";
-import { Await, redirect, useNavigate } from "react-router";
+import { Await, Link, redirect, useNavigate } from "react-router";
 import type { Route } from "../+types/root";
 import type {
   GameSettings,
@@ -203,6 +203,11 @@ export default function Profile({ loaderData }: Route.ComponentProps) {
             </p>
           )}
           <h1 className="font-bold text-xl">Profile</h1>
+          {!alive && profile.role === "player" && (
+            <Link to="/app/last-words" state={{ canSubmit: true }} className="my-4 inline-block underline underline-offset-4">
+              Write last words
+            </Link>
+          )}
           {/* name and profile image card */}
           <div
             className={`bg-slate-800 p-4 rounded-lg m-4 text-center items-center flex flex-col space-y-2 ${showCheckedIn ? CHECKED_IN_RING : ""}`}
@@ -321,7 +326,9 @@ export default function Profile({ loaderData }: Route.ComponentProps) {
                 Last words couldn't be loaded. Refresh to try again.
               </p>
             }>
-              {(result: ClientLastWordsResponse) => result.lastWords.map((lw: LastWordsEntry) => (
+              {(result: ClientLastWordsResponse) => result.lastWords.length === 0 ? (
+                <p className="m-4 text-sm text-slate-400">No last words have been submitted yet.</p>
+              ) : result.lastWords.map((lw: LastWordsEntry) => (
                 <div
                   key={lw.timestamp}
                   className="bg-slate-800 p-4 rounded-lg m-4"

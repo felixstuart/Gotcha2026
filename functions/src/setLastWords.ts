@@ -10,7 +10,7 @@ const MAX_LENGTH = 60;
  * Sets the user's last words if they are tagging out
  * Deletes the last words index as the index will now be outdated
  */
-export const setLastWords = onCall(async (request) => {
+export const setLastWords = onCall({ invoker: "public" }, async (request) => {
   const member = await requireRegisteredSchoolUser(request);
 
   const raw = request.data?.lastWords;

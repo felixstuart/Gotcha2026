@@ -183,3 +183,19 @@ index handler. Replays real sync-handler logic with deliberately delayed delete
 and creation events before checking the admin response again. Event delivery is
 controlled by the test, not the Functions emulator. Also checks invalid input,
 preview-only behavior, duplicate import refusal, admin preservation, and reset/reseed.
+
+## Last words callable access
+
+`setLastWords` is a Firebase callable. Its Cloud Run invoker must allow requests to
+reach the handler, which validates Firebase Authentication and roster membership.
+A private Cloud Run invoker rejects Firebase end-user tokens before that check.
+The source declares `invoker: "public"` so an authorized deploy applies this policy.
+If deployment cannot update IAM, a project owner or Cloud Run admin must run:
+
+```sh
+gcloud run services add-iam-policy-binding setlastwords --project felixs-gotcha-tes --region us-central1 --member=allUsers --role=roles/run.invoker
+```
+
+An unauthenticated callable request must still return the application's
+`PERMISSION_DENIED` JSON response. Cloud Run HTML 401/403 means the invoker policy
+is blocking the handler. Last words submitted during that outage were not saved.

@@ -4,15 +4,14 @@ import { getFirestore } from "firebase-admin/firestore";
 import { ClientLastWordsResponse, LastWordsEntry } from "../../types";
 
 export const lastWordsIndexPath = "lastWordsIndex/main";
-const CACHE_VERSION = 2;
+const CACHE_VERSION = 3;
 
-// how many last words are shown, and how many of the latest tag outs are read to find them
+// Number of submitted messages shown. Blank tag-out placeholders do not use a slot.
 const SHOWN = 10;
-const RECENT_TAG_OUTS = 50;
 
 /**
  * Gets the newest 10 nonempty entries by their stored tag-out timestamp.
- * Cache version 2 ignores older responses selected alphabetically.
+ * Cache version 3 reads beyond blank placeholders instead of stopping at fifty.
  */
 export const getLastWords = onCall(async (request): Promise<ClientLastWordsResponse> => {
   await requireRegisteredSchoolUser(request);
@@ -26,16 +25,14 @@ export const getLastWords = onCall(async (request): Promise<ClientLastWordsRespo
     const cached = (await tx.get(index)).data();
     if (cached?.version === CACHE_VERSION) return { lastWords: cached.lastWords };
 
-    // newest first. a query can't both leave out the blank ones and sort by time (Firestore
-    // sorts by the filtered field first, which made this list alphabetical), so the blank
-    // ones (tagged out, nothing written yet) are dropped here instead
+    // Scan the game roster's display collection only on a cache miss.
+    // A fixed window can hide submitted words behind newer blank placeholders.
     const snaps = await tx.get(db
       .collection("lastWords")
-      .orderBy("timestamp", "desc")
-      .limit(RECENT_TAG_OUTS));
+      .orderBy("timestamp", "desc"));
 
     const lastWords = (snaps.docs.map((doc) => doc.data()) as LastWordsEntry[])
-      .filter((entry) => typeof entry.lw === "string" && entry.lw !== "")
+      .filter((entry) => typeof entry.lw === "string" && entry.lw.trim() !== "")
       .slice(0, SHOWN);
     const result = { lastWords };
     tx.set(index, { ...result, version: CACHE_VERSION });
