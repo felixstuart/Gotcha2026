@@ -2,6 +2,7 @@
 import { initializeApp } from "firebase/app";
 import { connectAuthEmulator, getAuth } from "firebase/auth";
 import { GoogleAuthProvider } from "firebase/auth";
+import { selectAuthDomain } from "./auth-domain";
 import { connectFunctionsEmulator, getFunctions } from "firebase/functions";
 
 const useEmulators = import.meta.env.DEV && import.meta.env.VITE_USE_FIREBASE_EMULATORS === "true";
@@ -10,7 +11,11 @@ const useEmulators = import.meta.env.DEV && import.meta.env.VITE_USE_FIREBASE_EM
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyC35OSKmGGTL1l_T_lH_rjrhx6gUB1vkWY",
-  authDomain: "felixs-gotcha-tes.firebaseapp.com",
+  // Enable only after both app-domain callback URLs are registered with Google.
+  authDomain: selectAuthDomain(
+    typeof window === "undefined" ? "" : window.location.hostname,
+    !useEmulators && import.meta.env.VITE_FIREBASE_SAME_ORIGIN_AUTH === "true",
+  ),
   databaseURL: "https://felixs-gotcha-tes-default-rtdb.firebaseio.com",
   // Isolated emulator runs can select a demo project without changing release config.
   projectId: useEmulators

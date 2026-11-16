@@ -1,10 +1,8 @@
-import type { Route } from "./+types/landing";
+import { useRef, useState } from "react";
 import { FuzzyText } from "../../components/GotchaHero";
 import GoogleLogo from "../../assets/google-logo.png";
 import { useNavigate } from "react-router";
 import {
-  browserLocalPersistence,
-  setPersistence,
   signInWithPopup,
 } from "firebase/auth";
 import { auth } from "../../firebase";
@@ -13,19 +11,30 @@ import { GoogleAuthProvider } from "firebase/auth";
 export default function Home() {
   const navigate = useNavigate();
 
+  const pendingSignIn = useRef(false);
+  const [signingIn, setSigningIn] = useState(false);
+  const [signInError, setSignInError] = useState("");
+
   const signInWithGoogle = async () => {
-    setPersistence(auth, browserLocalPersistence)
-      .then(() => {
-        console.log("Persistence set to local");
-      })
-      .catch((err) => {
-        console.error("Error setting persistence:", err);
-      });
+    if (pendingSignIn.current) return;
+    pendingSignIn.current = true;
+    setSigningIn(true);
+    setSignInError("");
     try {
+      // getAuth already chooses supported persistence. Keep the popup on this click,
+      // without racing an additional persistence change or another sign-in attempt.
       await signInWithPopup(auth, new GoogleAuthProvider());
       navigate("/app/profile");
     } catch (error) {
-      console.log(error);
+      const code = (error as { code?: string }).code;
+      if (code !== "auth/popup-closed-by-user") {
+        setSignInError(code === "auth/popup-blocked"
+          ? "Allow popups for this site, then try signing in again."
+          : "Google sign-in could not finish. Close the sign-in window and try again from this button.");
+      }
+    } finally {
+      pendingSignIn.current = false;
+      setSigningIn(false);
     }
   };
 
@@ -49,13 +58,16 @@ export default function Home() {
           Google
         </h1>
         <button
-          onClick={() => signInWithGoogle()}
+          onClick={signInWithGoogle}
+          disabled={signingIn}
+          aria-busy={signingIn}
           className="flex rounded-md bg-slate-600 hover:bg-slate-700 active:bg-slate-800 items-center justify-center min-h-12 w-full px-6 py-2 gap-2 sm:ml-auto sm:w-auto shrink-0 whitespace-nowrap"
         >
           <img src={GoogleLogo} alt="Google Logo" className="w-8 h-8" />
-          <span>Sign in with Google</span>
+          <span>{signingIn ? "Signing in…" : "Sign in with Google"}</span>
         </button>
       </div>
+      {signInError && <p role="alert" className="px-4 pb-4 text-center text-sm text-red-300">{signInError}</p>}
     </div>
   );
 }

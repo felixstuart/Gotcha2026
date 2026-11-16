@@ -89,3 +89,21 @@ This template comes with [Tailwind CSS](https://tailwindcss.com/) already config
 ---
 
 Built with ❤️ using React Router.
+
+## Google sign-in on the app domain
+
+The same-origin Firebase auth helper avoids third-party storage partitioning.
+Before enabling it, edit the existing Google Web OAuth client used by Firebase
+(project `felixs-gotcha-tes`) and add these authorized redirect URIs, preserving existing URIs:
+
+- `https://gotchama.xyz/__/auth/handler`
+- `https://gotchama.web.app/__/auth/handler`
+
+Both hostnames must also be present in Firebase Authentication's Authorized domains.
+After Google accepts both callback URLs, build with
+`VITE_FIREBASE_SAME_ORIGIN_AUTH=true npm run build` and deploy Hosting.
+Do not enable this flag before configuring Google: sign-in would fail with
+`redirect_uri_mismatch`. Local/emulator builds keep the default Firebase helper.
+
+Run the callback-domain regression checks with
+`node --experimental-strip-types --test auth-domain.test.mjs` (Node 22+).
