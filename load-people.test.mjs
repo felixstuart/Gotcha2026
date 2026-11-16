@@ -68,7 +68,7 @@ test("CSV preserves names, normalizes classes and dorms, and builds matching tar
     assert.equal(p.target.lastName, byEmail.get(p.target.email).lastName);
   }
   assert.deepEqual(leaderboard.byDorms, ["day", "goodwin", "wolcott", "unknown"].map((dorm) => ({ dorm, tags: 0 })));
-  assert.deepEqual(leaderboard.topTaggers.map((p) => p.email), profiles.map((p) => p.email));
+  assert.deepEqual(leaderboard.topTaggers.map((p) => p.email), profiles.map((p) => p.email).sort((a, b) => a.localeCompare(b)));
 });
 
 test("CSV supports reordered headers, HTML spaces, blank metadata, multiline quoted names and identical duplicates", () => {
@@ -237,3 +237,12 @@ test("fewer than two non-admin players fails before any writes", async () => {
   await assert.rejects(importGame(db, game), /at least two non-admin/);
   assert.equal(db.writes.length, 0);
 });
+
+ test("public initial rankings are independent of private loop order", () => {
+  const emails = Array.from({ length: 20 }, (_, i) => `player${String(i).padStart(2, "0")}@milton.edu`);
+  const forward = buildGame(emails.join("\n"), 2027, false);
+  const reverse = buildGame([...emails].reverse().join("\n"), 2027, false);
+  assert.deepEqual(forward.leaderboard.topTaggers, reverse.leaderboard.topTaggers);
+  assert.deepEqual(forward.leaderboard.topTaggers.map(p => p.email), emails.slice(0, 10));
+  assert.notEqual(forward.profiles[0].profile.target.email, reverse.profiles.at(-1).profile.target.email);
+ });

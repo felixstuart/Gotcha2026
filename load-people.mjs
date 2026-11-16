@@ -122,7 +122,7 @@ export function buildGame(text, seniorYear, shuffle = true, format = "auto") {
   return {
     profiles,
     leaderboard: {
-      topTaggers: people.slice(0, 10).map((p) => ({ email: p.email, name: `${p.firstName} ${p.lastName}`.trim(), tags: 0 })),
+      topTaggers: [...people].sort((a, b) => a.email.localeCompare(b.email)).slice(0, 10).map((p) => ({ email: p.email, name: `${p.firstName} ${p.lastName}`.trim(), tags: 0 })),
       byClass: [...new Set(people.map((p) => p.class))].map((value) => ({ class: value, tags: 0 })),
       byDorms: [...new Set(people.map((p) => p.dayorboard))].map((dorm) => ({ dorm, tags: 0 })), lastUpdated: Date.now(),
     },
@@ -142,6 +142,7 @@ export async function importGame(db, game) {
       const admins = new Set(existing.docs.map((doc) => doc.id));
       const players = game.profiles.filter(({ email }) => !admins.has(email));
       if (players.length < 2) throw new Error("Provide at least two non-admin players; no data changed");
+      // Public leaderboard order must not reveal the private target loop.
       const indexRows = {};
       // Rebuild links after reading authoritative roles, preserving the shuffled order.
       for (const [i, { email, profile }] of players.entries()) {
@@ -167,7 +168,7 @@ export async function importGame(db, game) {
       tx.set(db.doc("adminIndex/main"), { players: indexRows, updatedAt: Date.now() });
       tx.create(db.doc("leaderboard/main"), {
         ...game.leaderboard,
-        topTaggers: players.slice(0, 10).map(({ email, profile: p }) => ({ email, name: `${p.firstName} ${p.lastName}`, tags: 0 })),
+        topTaggers: [...players].sort((a, b) => a.email.localeCompare(b.email)).slice(0, 10).map(({ email, profile: p }) => ({ email, name: `${p.firstName} ${p.lastName}`, tags: 0 })),
         byClass: [...new Set(players.map(({ profile: p }) => p.class))].map((value) => ({ class: value, tags: 0 })),
         byDorms: [...new Set(players.map(({ profile: p }) => p.dayorboard))].map((dorm) => ({ dorm, tags: 0 })),
       });
