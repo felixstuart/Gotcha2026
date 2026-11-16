@@ -10,6 +10,9 @@ interface FuzzyTextProps extends React.HTMLAttributes<HTMLDivElement> {
   baseIntensity?: number;
   hoverIntensity?: number;
   verticalCoverage?: number; // percentage of screen height (0-1)
+  // Size the canvas to the wrapper div instead of the window. Pass a className
+  // that gives the wrapper a size, e.g. "w-full h-full".
+  fillParent?: boolean;
 }
 
 export const FuzzyText: React.FC<FuzzyTextProps> = ({
@@ -22,6 +25,7 @@ export const FuzzyText: React.FC<FuzzyTextProps> = ({
   baseIntensity = 0.18,
   hoverIntensity = 0.5,
   verticalCoverage = 0.9,
+  fillParent = false,
   ...divProps
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -97,9 +101,10 @@ export const FuzzyText: React.FC<FuzzyTextProps> = ({
       offCtx.fillStyle = color;
       offCtx.fillText(text, xOffset - actualLeft, actualAscent);
 
-      // Set canvas to screen size
-      const screenWidth = window.innerWidth;
-      const screenHeight = window.innerHeight;
+      // Set canvas to screen size (or the wrapper's size with fillParent)
+      const host = fillParent ? canvas.parentElement : null;
+      const screenWidth = host ? host.clientWidth : window.innerWidth;
+      const screenHeight = host ? host.clientHeight : window.innerHeight;
       canvas.width = screenWidth;
       canvas.height = screenHeight;
 
@@ -221,6 +226,7 @@ export const FuzzyText: React.FC<FuzzyTextProps> = ({
     baseIntensity,
     hoverIntensity,
     verticalCoverage,
+    fillParent,
   ]);
 
   return (

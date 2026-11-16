@@ -8,6 +8,7 @@ import {
 
 export default [
   index("./routes/landing.tsx"),
+  route("android", "routes/android.tsx"),
   ...prefix("app", [
     layout("../components/Layout.tsx", [
       route("profile", "routes/profile.tsx"),

@@ -14,6 +14,9 @@ type Pages = {
   "/": {
     params: {};
   };
+  "/android": {
+    params: {};
+  };
   "/app/profile": {
     params: {};
   };
@@ -34,11 +37,15 @@ type Pages = {
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/app/profile" | "/app/leaderboard" | "/app/last-words" | "/app/admin/users" | "/app/admin/gameplay";
+    page: "/" | "/android" | "/app/profile" | "/app/leaderboard" | "/app/last-words" | "/app/admin/users" | "/app/admin/gameplay";
   };
   "./routes/landing.tsx": {
     id: "routes/landing";
     page: "/";
+  };
+  "routes/android.tsx": {
+    id: "routes/android";
+    page: "/android";
   };
   "../components/Layout.tsx": {
     id: "../components/Layout";
@@ -73,6 +80,7 @@ type RouteFiles = {
 type RouteModules = {
   "root": typeof import("./app/root.tsx");
   "routes/landing": typeof import("./app/./routes/landing.tsx");
+  "routes/android": typeof import("./app/routes/android.tsx");
   "../components/Layout": unknown;
   "routes/profile": typeof import("./app/routes/profile.tsx");
   "routes/leaderboard": typeof import("./app/routes/leaderboard.tsx");
