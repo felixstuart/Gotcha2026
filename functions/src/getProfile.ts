@@ -15,27 +15,27 @@ export type { Location };
  * @returns the building they're in, or null if they're in none
  */
 export const updateChaserTargetLocation = async (
-    email: string,
-    targetLocation: Location,
-    building = buildingAt(targetLocation),
+  email: string,
+  targetLocation: Location,
+  building = buildingAt(targetLocation),
 ): Promise<string | null> => {
-    if (!building) return null;
+  if (!building) return null;
 
-    return db.runTransaction(async (tx) => {
-        const caller = (await tx.get(db.doc(`data/${email}`))).data() as Profile | undefined;
-        if (!caller?.alive || caller.role !== "player" || !caller.chaser || caller.chaser === "none") {
-            return null;
-        }
-        const chaserRef = db.doc(`data/${caller.chaser}`);
-        const chaser = (await tx.get(chaserRef)).data() as Profile | undefined;
-        if (!chaser?.alive || chaser.target?.email !== email) return null;
-        tx.update(chaserRef, { "target.location": building });
-        return building;
-    }).catch((err) => {
-        // Sharing is best-effort: a failed chaser update must not hide the caller's profile.
-        console.error("couldn't save the building for the chaser:", err);
-        return null;
-    });
+  return db.runTransaction(async (tx) => {
+    const caller = (await tx.get(db.doc(`data/${email}`))).data() as Profile | undefined;
+    if (!caller?.alive || caller.role !== "player" || !caller.chaser || caller.chaser === "none") {
+      return null;
+    }
+    const chaserRef = db.doc(`data/${caller.chaser}`);
+    const chaser = (await tx.get(chaserRef)).data() as Profile | undefined;
+    if (!chaser?.alive || chaser.target?.email !== email) return null;
+    tx.update(chaserRef, { "target.location": building });
+    return building;
+  }).catch((err) => {
+    // Sharing is best-effort: a failed chaser update must not hide the caller's profile.
+    console.error("couldn't save the building for the chaser:", err);
+    return null;
+  });
 };
 
 /**
@@ -45,19 +45,19 @@ export const updateChaserTargetLocation = async (
  * @returns whether this call checked them in
  */
 export const checkIn = async (
-    email: string,
-    profile: Profile,
-    building: string | null,
-    settings: GameSettings,
-    now = Date.now(),
+  email: string,
+  profile: Profile,
+  building: string | null,
+  settings: GameSettings,
+  now = Date.now(),
 ): Promise<boolean> => {
-    if (!settings.checkInEnabled || !building) return false;
-    if (settings.checkInBuilding !== null && settings.checkInBuilding !== building) return false;
-    if (checkedInToday(profile.checkedInAt, now)) return false; // already done, so no write
+  if (!settings.checkInEnabled || !building) return false;
+  if (settings.checkInBuilding !== null && settings.checkInBuilding !== building) return false;
+  if (checkedInToday(profile.checkedInAt, now)) return false; // already done, so no write
 
-    await db.collection("data").doc(email).update({ checkedInAt: now });
-    profile.checkedInAt = now;
-    return true;
+  await db.collection("data").doc(email).update({ checkedInAt: now });
+  profile.checkedInAt = now;
+  return true;
 };
 
 /**
@@ -66,9 +66,9 @@ export const checkIn = async (
  * @param sharedLocation whether this call came with their own location
  */
 export function canSeeTargetLocation(settings: GameSettings, sharedLocation: boolean): boolean {
-    // it's a location feature, so switching location off hides it too
-    if (!settings.locationEnabled || !settings.seeTargetLocation) return false;
-    return !settings.shareToSeeTargetLocation || sharedLocation;
+  // it's a location feature, so switching location off hides it too
+  if (!settings.locationEnabled || !settings.seeTargetLocation) return false;
+  return !settings.shareToSeeTargetLocation || sharedLocation;
 }
 
 /**
@@ -77,8 +77,8 @@ export function canSeeTargetLocation(settings: GameSettings, sharedLocation: boo
  * and which admin last edited them is left out.
  */
 export function forPlayer(profile: Profile): ClientProfile {
-    const { chaser: _chaser, lastEditedBy: _by, lastEditedAt: _at, ...rest } = profile;
-    return rest;
+  const { chaser: _chaser, lastEditedBy: _by, lastEditedAt: _at, ...rest } = profile;
+  return rest;
 }
 
 /**
@@ -89,19 +89,19 @@ export function forPlayer(profile: Profile): ClientProfile {
  * @returns
  */
 export const getUserProfileByEmail = async (userEmail: string): Promise<Profile | null> => {
-    const profileDocument = await db.collection("data").doc(userEmail).get(); // emails used as document id
-    const profile = profileDocument.data() as Profile | undefined;
-    if (!profile) return null;
-    return profile;
-}
+  const profileDocument = await db.collection("data").doc(userEmail).get(); // emails used as document id
+  const profile = profileDocument.data() as Profile | undefined;
+  if (!profile) return null;
+  return profile;
+};
 
 // a failed claim sync should never stop the profile from loading
 async function trySyncRoleClaim(request: CallableRequest, role: Role): Promise<void> {
-    try {
-        await syncRoleClaim(request, role);
-    } catch (err) {
-        console.error("role claim sync failed:", err);
-    }
+  try {
+    await syncRoleClaim(request, role);
+  } catch (err) {
+    console.error("role claim sync failed:", err);
+  }
 }
 
 /**
@@ -120,51 +120,51 @@ export const getProfile = onCall(async (request): Promise<ClientProfile | null> 
   const email = requestedEmail(request.data, member.email, isAdmin);
   const ownProfile = email === member.email;
 
-    const profile = ownProfile ? member.profile : await getUserProfileByEmail(email);
+  const profile = ownProfile ? member.profile : await getUserProfileByEmail(email);
 
-    const location = request.data?.location;
-    const sharedLocation = location !== undefined && location !== null;
-    if (sharedLocation) {
-        if (!Array.isArray(location) || location.length !== 2 ||
+  const location = request.data?.location;
+  const sharedLocation = location !== undefined && location !== null;
+  if (sharedLocation) {
+    if (!Array.isArray(location) || location.length !== 2 ||
             !location.every((v: unknown) => typeof v === "number" && Number.isFinite(v)) ||
             Math.abs(location[0]) > 90 || Math.abs(location[1]) > 180) {
-            throw new HttpsError("invalid-argument", "Invalid coordinates");
-        }
-        if (!ownProfile) {
-            throw new HttpsError("permission-denied", "Only players make updates");
-        }
+      throw new HttpsError("invalid-argument", "Invalid coordinates");
     }
+    if (!ownProfile) {
+      throw new HttpsError("permission-denied", "Only players make updates");
+    }
+  }
 
-    // cached, so this almost never costs a read
-    const settings = await getSettings();
+  // cached, so this almost never costs a read
+  const settings = await getSettings();
 
-    if (sharedLocation && profile && profile.alive && profile.role === "player" &&
+  if (sharedLocation && profile && profile.alive && profile.role === "player" &&
         (settings.locationEnabled || settings.checkInEnabled)) {
-        // the building is worked out once, in memory, and shared by both features
-        const building = buildingAt(location as Location);
-        if (building) profile.location = building;
+    // the building is worked out once, in memory, and shared by both features
+    const building = buildingAt(location as Location);
+    if (building) profile.location = building;
 
-        // admins can switch location off in the game settings.
-        // check-in still works without it (it only needs this call's location)
-        await Promise.all([
-            settings.locationEnabled ?
-                updateChaserTargetLocation(email, location as Location, building) :
-                null,
-            checkIn(email, profile, building, settings),
-        ]);
-    }
+    // admins can switch location off in the game settings.
+    // check-in still works without it (it only needs this call's location)
+    await Promise.all([
+      settings.locationEnabled ?
+        updateChaserTargetLocation(email, location as Location, building) :
+        null,
+      checkIn(email, profile, building, settings),
+    ]);
+  }
 
-    if (ownProfile) {
-        await trySyncRoleClaim(request, member.profile.role);
-    }
+  if (ownProfile) {
+    await trySyncRoleClaim(request, member.profile.role);
+  }
 
-    // the building stays saved either way, it's only left out of what players get back.
-    // admins always see it
-    if (!profile || isAdmin) return profile;
+  // the building stays saved either way, it's only left out of what players get back.
+  // admins always see it
+  if (!profile || isAdmin) return profile;
 
-    if (profile.target?.location !== undefined && !canSeeTargetLocation(settings, sharedLocation)) {
-        return forPlayer({ ...profile, target: { ...profile.target, location: undefined } });
-    }
+  if (profile.target?.location !== undefined && !canSeeTargetLocation(settings, sharedLocation)) {
+    return forPlayer({ ...profile, target: { ...profile.target, location: undefined } });
+  }
 
-    return forPlayer(profile);
+  return forPlayer(profile);
 });

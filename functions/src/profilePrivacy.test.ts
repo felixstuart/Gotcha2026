@@ -60,11 +60,11 @@ describe("profile hunter privacy", () => {
 
   it("still shares location and checks in without returning the hunter", async () => {
     setCachedSettings({ ...DEFAULT_SETTINGS, checkInEnabled: true });
-    const response = await load(player, false, { location: pointIn("Science Building") });
+    const response = await load(player, false, { location: pointIn("AMC") });
     expect(response).not.toHaveProperty("chaser");
-    expect(response?.location).toBe("Science Building");
+    expect(response?.location).toBe("AMC");
     expect(response?.checkedInAt).toBeTypeOf("number");
-    expect((await db.doc(`data/${hunter}`).get()).data()?.target.location).toBe("Science Building");
+    expect((await db.doc(`data/${hunter}`).get()).data()?.target.location).toBe("AMC");
     expect((await db.doc(`data/${player}`).get()).data()?.chaser).toBe(hunter);
   });
 

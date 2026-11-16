@@ -61,7 +61,9 @@ beforeAll(async () => {
   await batch.commit();
 }, 30000);
 
-afterAll(async () => { await deleteApp(app); });
+afterAll(async () => {
+  await deleteApp(app);
+});
 
 describe("real Firebase security boundaries", () => {
   it("rejects unauthenticated calls", async () => {

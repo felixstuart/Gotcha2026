@@ -29,6 +29,12 @@ module.exports = {
   rules: {
     "quotes": ["error", "double"],
     "import/no-unresolved": 0,
-    "indent": ["error", 4],
+    // Match the codebase's existing style (2-space indent, spaced braces, ~120-col lines).
+    "indent": ["error", 2],
+    "object-curly-spacing": ["error", "always"],
+    "max-len": ["error", { code: 120, ignoreUrls: true, ignoreStrings: true, ignoreTemplateLiterals: true }],
+    // Deprecated in ESLint core; TypeScript types already document params/returns.
+    "valid-jsdoc": 0,
+    "require-jsdoc": 0,
   },
 };

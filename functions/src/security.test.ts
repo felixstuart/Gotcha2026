@@ -14,6 +14,7 @@ vi.mock("firebase-admin/firestore", () => ({ getFirestore: () => ({
   runTransaction: (fn: (tx: unknown) => unknown) => fn({ get: state.txGet, update: state.update, set: state.set }),
 }) }));
 import { requireRegisteredSchoolUser, requestedEmail } from "./authorization";
+import { requireAdmin } from "./auth";
 import { tagOut } from "./tagOut";
 
 const request = (email = "student@milton.edu", verified = true) => ({
@@ -32,6 +33,21 @@ describe("student data authorization", () => {
   it.each([["outsider@gmail.com", true], ["student@milton.edu", false],
     ["student@milton.edu.evil.com", true]])("rejects %s (verified=%s)", async (email, verified) => {
     await expect(requireRegisteredSchoolUser(request(email, verified))).rejects.toMatchObject({ code: "permission-denied" });
+  });
+  it("accepts the temporary App Store review account, and only that exact address", async () => {
+    state.profile = { role: "observer", alive: false };
+    expect((await requireRegisteredSchoolUser(request("testforgotcha123@gmail.com"))).email)
+      .toBe("testforgotcha123@gmail.com");
+    for (const email of ["testforgotcha1234@gmail.com", "TESTFORGOTCHA123@gmail.com", "x.testforgotcha123@gmail.com"]) {
+      await expect(requireRegisteredSchoolUser(request(email))).rejects.toMatchObject({ code: "permission-denied" });
+    }
+    await expect(requireRegisteredSchoolUser(request("testforgotcha123@gmail.com", false)))
+      .rejects.toMatchObject({ code: "permission-denied" });
+  });
+  it("never lets the review account pass the admin check", async () => {
+    state.profile = { role: "admin", alive: false };
+    const asAdmin = { auth: { uid: "r", token: { email: "testforgotcha123@gmail.com", email_verified: true, admin: true } } };
+    await expect(requireAdmin(asAdmin as any)).rejects.toMatchObject({ code: "permission-denied" });
   });
   it("rejects school accounts without a registered profile", async () => {
     state.profile = undefined;

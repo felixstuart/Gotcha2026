@@ -30,7 +30,10 @@ async function markSwept(settings: GameSettings, dayKey: string) {
  * Their chaser is set to "none": nobody tagged them, so they get no last words, nobody gets a
  * tag, revenge isn't applied, and nobody's revenge brings them back.
  */
-export async function removeMissedPlayers(emails: string[], now: number): Promise<{ removed: string[]; winner: string | null }> {
+export async function removeMissedPlayers(
+  emails: string[],
+  now: number,
+): Promise<{ removed: string[]; winner: string | null }> {
   return db.runTransaction(async (tx) => {
     const chain = new Chain(db, tx);
     const removed: string[] = [];

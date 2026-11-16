@@ -7,7 +7,7 @@ import { pointIn } from "./testBuildings";
 
 const loop = ["a", "b", "c", "d"].map((id) => `location-${id}@milton.edu`);
 const [A, B, C, D] = loop;
-const position = pointIn("Science Building");
+const position = pointIn("AMC");
 const read = async (email: string) => (await db.doc(`data/${email}`).get()).data() as Profile;
 
 beforeAll(() => {
@@ -31,8 +31,8 @@ beforeEach(async () => {
 
 describe("transactional target location", () => {
   it("updates only the current chaser's target location", async () => {
-    expect(await updateChaserTargetLocation(B, position)).toBe("Science Building");
-    expect((await read(A)).target.location).toBe("Science Building");
+    expect(await updateChaserTargetLocation(B, position)).toBe("AMC");
+    expect((await read(A)).target.location).toBe("AMC");
     expect((await read(C)).target.location).toBe("Faulkner House");
     expect((await read(B)).location).toBeUndefined();
   });
@@ -44,7 +44,7 @@ describe("transactional target location", () => {
       chain.save();
     });
     await updateChaserTargetLocation(B, position);
-    expect((await read(C)).target).toMatchObject({ email: B, location: "Science Building" });
+    expect((await read(C)).target).toMatchObject({ email: B, location: "AMC" });
     expect((await read(A)).target).toMatchObject({ email: C, location: "Faulkner House" });
   });
 

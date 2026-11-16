@@ -81,7 +81,7 @@ describe("target location visibility", () => {
     expect(without.target.location).toBeUndefined();
 
     const withLocation = await wrappedGetProfile({
-      data: { location: pointIn("Science Building") }, auth: authFor(A),
+      data: { location: pointIn("AMC") }, auth: authFor(A),
     } as any) as Profile;
     expect(withLocation.target.location).toBeDefined();
   });
@@ -93,26 +93,26 @@ describe("check-in", () => {
   it("doesn't check in outside the check-in building", async () => {
     useSettings({ checkInEnabled: true, checkInBuilding: "Faulkner House", locationEnabled: false });
     const result = await wrappedGetProfile({
-      data: { location: pointIn("Science Building") }, auth: authFor(A),
+      data: { location: pointIn("AMC") }, auth: authFor(A),
     } as any) as Profile;
     expect(result.checkedInAt).toBeUndefined();
     expect((await db.doc(`data/${A}`).get()).data()?.checkedInAt).toBeUndefined();
   });
 
   it("checks in once a day, even with location sharing off", async () => {
-    useSettings({ checkInEnabled: true, checkInBuilding: "Science Building", locationEnabled: false });
+    useSettings({ checkInEnabled: true, checkInBuilding: "AMC", locationEnabled: false });
     const first = await wrappedGetProfile({
-      data: { location: pointIn("Science Building") }, auth: authFor(A),
+      data: { location: pointIn("AMC") }, auth: authFor(A),
     } as any) as Profile;
     expect(first.checkedInAt).toBeTypeOf("number");
-    expect(first.location).toBe("Science Building");
+    expect(first.location).toBe("AMC");
 
     // location is off, so the chaser's copy wasn't touched
     expect(((await db.doc(`data/${D}`).get()).data() as Profile).target.location).toBe("Faulkner House");
 
     // a second check-in the same day doesn't write again
     const second = await wrappedGetProfile({
-      data: { location: pointIn("Science Building") }, auth: authFor(A),
+      data: { location: pointIn("AMC") }, auth: authFor(A),
     } as any) as Profile;
     expect(second.checkedInAt).toBe(first.checkedInAt);
   });
