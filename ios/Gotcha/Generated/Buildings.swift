@@ -4,5 +4,5 @@
 import Foundation
 
 nonisolated enum Buildings {
-    static let names: [String] = ["Athletic and Convocation Center", "Faulkner House", "Science Building", "Squash Courts"]
+    static let names: [String] = ["Faulkner House", "Strauss", "Cox/Warren", "Stu", "Forbes", "RSG", "Wolcott", "Robbins", "Forbes/Academy", "Facilities", "ACC", "Squash Courts", "FMC", "AMC", "Ware", "Kellner", "Pritzker", "Dorms", "Chapel"]
 }

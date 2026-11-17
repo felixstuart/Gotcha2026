@@ -99,3 +99,6 @@ website/build/
 
 # Private CSV roster
 /roster.csv
+
+# Built APKs are uploaded at deploy time, not committed.
+website/public/downloads/*.apk

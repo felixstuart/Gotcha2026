@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A1C0D2026110000000000001 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = A1C0D2026110000000000002 /* GoogleService-Info.plist */; };
 		8D496F723084460B0063B2F8 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 8D496F713084460B0063B2F8 /* FirebaseAuth */; };
 		8D496F743084460B0063B2F8 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 8D496F733084460B0063B2F8 /* FirebaseFirestore */; };
 		8D496F763084460B0063B2F8 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = 8D496F753084460B0063B2F8 /* FirebaseFunctions */; };
@@ -33,7 +32,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		A1C0D2026110000000000002 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Gotcha/GoogleService-Info.plist"; sourceTree = "<group>"; };
+		F21DABB230A61B1B0094F89C /* Gotcha.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Gotcha.xcodeproj; sourceTree = "<group>"; };
+		F23553D930A7808F0012DF00 /* Gotcha.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Gotcha.xcodeproj; sourceTree = "<group>"; };
+		F256D8FF30A77D830023F40D /* Gotcha.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Gotcha.xcodeproj; sourceTree = "<group>"; };
 		F2EC1B9B2F07171F006F54C9 /* Gotcha.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Gotcha.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F2EC1BAA2F071721006F54C9 /* GotchaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GotchaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F2EC1BB42F071721006F54C9 /* GotchaUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GotchaUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -44,24 +45,23 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
-				"GoogleService-Info.plist",
 			);
 			target = F2EC1B9A2F07171F006F54C9 /* Gotcha */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		8D4A9000307FE74F0080AB2C /* GotchaUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = GotchaUITests;
+			sourceTree = "<group>";
+		};
 		F2EC1B9D2F07171F006F54C9 /* Gotcha */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				8D496F7D3084469C0063B2F8 /* Exceptions for "Gotcha" folder in "Gotcha" target */,
 			);
 			path = Gotcha;
-			sourceTree = "<group>";
-		};
-		8D4A9000307FE74F0080AB2C /* GotchaUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = GotchaUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -103,14 +103,38 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		F21DABB930A61B1B0094F89C /* Products */ = {
+			isa = PBXGroup;
+			name = Products;
+			sourceTree = "<group>";
+		};
+		F23553E030A7808F0012DF00 /* Products */ = {
+			isa = PBXGroup;
+			name = Products;
+			sourceTree = "<group>";
+		};
+		F256D8E530A77D830023F40D /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+				F21DABB230A61B1B0094F89C /* Gotcha.xcodeproj */,
+				F256D8FF30A77D830023F40D /* Gotcha.xcodeproj */,
+			);
+			name = "Recovered References";
+			sourceTree = "<group>";
+		};
+		F256D90630A77D830023F40D /* Products */ = {
+			isa = PBXGroup;
+			name = Products;
+			sourceTree = "<group>";
+		};
 		F2EC1B922F07171F006F54C9 = {
 			isa = PBXGroup;
 			children = (
 				F2EC1B9D2F07171F006F54C9 /* Gotcha */,
-				A1C0D2026110000000000002 /* GoogleService-Info.plist */,
 				8D4A9000307FE74F0080AB2C /* GotchaUITests */,
 				8D4A8815307FE74F0080AB2C /* Frameworks */,
 				F2EC1B9C2F07171F006F54C9 /* Products */,
+				F256D8E530A77D830023F40D /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -236,6 +260,20 @@
 			preferredProjectObjectVersion = 77;
 			productRefGroup = F2EC1B9C2F07171F006F54C9 /* Products */;
 			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = F21DABB930A61B1B0094F89C /* Products */;
+					ProjectRef = F21DABB230A61B1B0094F89C /* Gotcha.xcodeproj */;
+				},
+				{
+					ProductGroup = F23553E030A7808F0012DF00 /* Products */;
+					ProjectRef = F23553D930A7808F0012DF00 /* Gotcha.xcodeproj */;
+				},
+				{
+					ProductGroup = F256D90630A77D830023F40D /* Products */;
+					ProjectRef = F256D8FF30A77D830023F40D /* Gotcha.xcodeproj */;
+				},
+			);
 			projectRoot = "";
 			targets = (
 				F2EC1B9A2F07171F006F54C9 /* Gotcha */,
@@ -250,7 +288,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A1C0D2026110000000000001 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -436,16 +473,21 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CODE_SIGN_ENTITLEMENTS = Gotcha/Gotcha.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 7B7M7FR7QW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Gotcha/Info.plist;
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Gotcha uses your location to tell which campus building you're in, for check-ins and so your chaser can find you.";
+				INFOPLIST_KEY_CFBundleDisplayName = Gotcha;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.games";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Gotcha uses your location to tell which campus building you're in, for check-ins and so your chaser can find you. ";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIStatusBarHidden = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
@@ -453,9 +495,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
-				CODE_SIGN_ENTITLEMENTS = Gotcha/Gotcha.entitlements;
-				PRODUCT_BUNDLE_IDENTIFIER = com.miltonacademy.Gotcha;
+				MARKETING_VERSION = 5.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gotcha2022.Gotcha;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -472,16 +513,21 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CODE_SIGN_ENTITLEMENTS = Gotcha/Gotcha.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 7B7M7FR7QW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Gotcha/Info.plist;
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Gotcha uses your location to tell which campus building you're in, for check-ins and so your chaser can find you.";
+				INFOPLIST_KEY_CFBundleDisplayName = Gotcha;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.games";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Gotcha uses your location to tell which campus building you're in, for check-ins and so your chaser can find you. ";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIStatusBarHidden = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
@@ -489,9 +535,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
-				CODE_SIGN_ENTITLEMENTS = Gotcha/Gotcha.entitlements;
-				PRODUCT_BUNDLE_IDENTIFIER = com.miltonacademy.Gotcha;
+				MARKETING_VERSION = 5.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gotcha2022.Gotcha;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -508,7 +553,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 7B7M7FR7QW;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
@@ -530,7 +575,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 7B7M7FR7QW;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
@@ -551,7 +596,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 7B7M7FR7QW;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
@@ -571,7 +616,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 7B7M7FR7QW;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;

@@ -21,7 +21,11 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "edu.milton.gotcha",
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "output": "static",
@@ -59,6 +63,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "7a4573f5-e54c-4ba0-b834-109111a50f43"
+      }
+    },
+    "owner": "felixstuart"
   }
 }

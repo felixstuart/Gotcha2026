@@ -124,6 +124,8 @@ export const FuzzyText: React.FC<FuzzyTextProps> = ({
       let isHovering = false;
       let animationFrameId: number;
       const fuzzRange = 30;
+      // Phones (no mouse) get no hover boost, and touching the text never blocks scrolling
+      const canHover = enableHover && window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 
       const run = () => {
         if (isCancelled || currentInitializationId !== initializationId) return;
@@ -159,7 +161,6 @@ export const FuzzyText: React.FC<FuzzyTextProps> = ({
         y <= interactiveBottom;
 
       const handleMouseMove = (e: MouseEvent) => {
-        if (!enableHover) return;
         const rect = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
@@ -170,36 +171,16 @@ export const FuzzyText: React.FC<FuzzyTextProps> = ({
         isHovering = false;
       };
 
-      const handleTouchMove = (e: TouchEvent) => {
-        if (!enableHover) return;
-        e.preventDefault();
-        const rect = canvas.getBoundingClientRect();
-        const touch = e.touches[0];
-        const x = touch.clientX - rect.left;
-        const y = touch.clientY - rect.top;
-        isHovering = isInsideTextArea(x, y);
-      };
-
-      const handleTouchEnd = () => {
-        isHovering = false;
-      };
-
-      if (enableHover) {
+      if (canHover) {
         canvas.addEventListener("mousemove", handleMouseMove);
         canvas.addEventListener("mouseleave", handleMouseLeave);
-        canvas.addEventListener("touchmove", handleTouchMove, {
-          passive: false,
-        });
-        canvas.addEventListener("touchend", handleTouchEnd);
       }
 
       cleanupAnimation = () => {
         window.cancelAnimationFrame(animationFrameId);
-        if (enableHover) {
+        if (canHover) {
           canvas.removeEventListener("mousemove", handleMouseMove);
           canvas.removeEventListener("mouseleave", handleMouseLeave);
-          canvas.removeEventListener("touchmove", handleTouchMove);
-          canvas.removeEventListener("touchend", handleTouchEnd);
         }
       };
     };
